@@ -10,7 +10,7 @@
 
 Finda isn't just another marketplace—it’s a **unified search engine for commerce**, helping users discover the best offers, products, and services across **Finda’s internal vendors** and external platforms like Jumia, AliExpress, and more via **AI-enhanced affiliate integrations**.
 
-**Live Demo**: [View on Lovable](https://lovable.dev/projects/5b2bd04f-9904-4036-bf6a-981b2d1dcbb1)
+
 
 ---
 
@@ -85,7 +85,6 @@ Finda isn't just another marketplace—it’s a **unified search engine for comm
 ### Dev Tools
 
 * ESLint, PostCSS, Class Variance Authority
-* Lovable (No-code + Code Accelerator)
 
 ---
 
