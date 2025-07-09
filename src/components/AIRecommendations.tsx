@@ -21,7 +21,7 @@ interface AIRecommendationsProps {
 const AIRecommendations = ({ 
   searchHistory = [], 
   currentCategory, 
-  userPreferences 
+//   userPreferences 
 }: AIRecommendationsProps) => {
   const [recommendations, setRecommendations] = useState<Listing[]>([]);
   const [topRated, setTopRated] = useState<Listing[]>([]);

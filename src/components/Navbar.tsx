@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Search, Menu, User, Heart, ShoppingCart, MessageCircle, Wallet, BarChart3, Gift, Sparkles } from 'lucide-react';
+import { Search, Menu, User, Heart, ShoppingCart, MessageCircle, Wallet, Gift, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { mockCategories } from '@/lib/mock-ai';
 import MobileSearchModal from './MobileSearchModal';
-import { useIsMobile } from '@/hooks/use-Mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 
 const NavBar = () => {

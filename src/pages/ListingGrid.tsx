@@ -20,7 +20,7 @@ const ListingGrid = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('relevance');
   const [showAIRecommendations, setShowAIRecommendations] = useState(true);
-  const { addToHistory, getRecentSearches, getSearchesByCategory } = useSearchHistory();
+  const { addToHistory, getRecentSearches } = useSearchHistory();
   const [filters, setFilters] = useState({
     categories: searchParams.get('category') ? [searchParams.get('category')!] : [],
     locations: [] as string[],

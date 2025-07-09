@@ -1,11 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import  { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, Calendar, Phone, Video, MoreVertical, Clock } from 'lucide-react';
-import { mockListings } from '@/lib/mock-ai';
+import { MessageCircle, Send, Calendar, Phone, Video, MoreVertical } from 'lucide-react';
 
 interface Message {
   id: string;

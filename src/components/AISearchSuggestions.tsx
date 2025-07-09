@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Sparkles, Clock, TrendingUp } from 'lucide-react';
-import { mockAI } from '@/lib/mock-ai';
+// import { mockAI } from '@/lib/mock-ai';
 
 interface AISearchSuggestionsProps {
   onSearch: (query: string) => void;
@@ -95,7 +95,9 @@ const AISearchSuggestions = ({
         <Card className="absolute top-full mt-2 w-full z-50 shadow-lg">
           <CardContent className="p-4 space-y-4">
             {/* AI Suggestions */}
-            {suggestions.length > 0 && (
+           {isLoading ? (
+               <div className="text-center text-sm text-gray-500 py-2">Generating suggestions...</div>
+            ) : suggestions.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-4 w-4 text-blue-600" />

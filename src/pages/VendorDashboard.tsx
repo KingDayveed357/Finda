@@ -71,7 +71,7 @@ const VendorDashboard = () => {
               <DialogHeader>
                 <DialogTitle>Create New Listing</DialogTitle>
               </DialogHeader>
-              <ListingForm onSubmit={handleCreateListing} onCancel={} />
+              <ListingForm onSubmit={handleCreateListing}  onCancel={() => console.log('Cancelled')}  />
             </DialogContent>
           </Dialog>
         </div>
