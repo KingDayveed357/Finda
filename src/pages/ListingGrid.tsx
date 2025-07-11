@@ -144,64 +144,69 @@ const ListingGrid = () => {
             </p>
           </div>
           
-          <div className="flex items-center space-x-4 mt-4 sm:mt-0">
-            {/* AI Recommendations Toggle */}
-            <Button
-              variant={showAIRecommendations ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowAIRecommendations(!showAIRecommendations)}
-              className="flex items-center gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              AI Recommendations
-            </Button>
+<div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 mt-4 sm:mt-0">
+  {/* AI Recommendations Toggle */}
+  <Button
+    variant={showAIRecommendations ? 'default' : 'outline'}
+    size="sm"
+    onClick={() => setShowAIRecommendations(!showAIRecommendations)}
+    className="flex items-center gap-2"
+  >
+    <Sparkles className="h-4 w-4" />
+    AI Recommendations
+  </Button>
 
-            {/* Sort */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ai-relevance">🤖 AI Relevance</SelectItem>
-                <SelectItem value="relevance">Most Relevant</SelectItem>
-                <SelectItem value="price-low">Price: Low to High</SelectItem>
-                <SelectItem value="price-high">Price: High to Low</SelectItem>
-                <SelectItem value="rating">Highest Rated</SelectItem>
-                <SelectItem value="newest">Newest First</SelectItem>
-              </SelectContent>
-            </Select>
+  {/* Mobile Row: Sort + Filters */}
+  <div className="flex w-full sm:w-auto gap-4 sm:gap-0 sm:flex-row justify-between sm:justify-start">
+    {/* Sort Dropdown */}
+    <Select value={sortBy} onValueChange={setSortBy}>
+      <SelectTrigger className="w-full sm:w-48">
+        <SelectValue placeholder="Sort by" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="ai-relevance">🤖 AI Relevance</SelectItem>
+        <SelectItem value="relevance">Most Relevant</SelectItem>
+        <SelectItem value="price-low">Price: Low to High</SelectItem>
+        <SelectItem value="price-high">Price: High to Low</SelectItem>
+        <SelectItem value="rating">Highest Rated</SelectItem>
+        <SelectItem value="newest">Newest First</SelectItem>
+      </SelectContent>
+    </Select>
 
-            {/* View Mode */}
-            <div className="flex items-center border rounded-lg">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
+    {/* Mobile Filters Button */}
+    <Sheet >
+      <SheetTrigger asChild>
+        <Button variant="outline" className="md:hidden  sm:w-auto">
+          <SlidersHorizontal className="h-4 w-4 mr-2" />
+          Filters
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-80">
+        <FiltersSidebar filters={filters} onFiltersChange={setFilters} />
+      </SheetContent>
+    </Sheet>
+  </div>
 
-            {/* Mobile Filters */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="md:hidden">
-                  <SlidersHorizontal className="h-4 w-4 mr-2" />
-                  Filters
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80">
-                <FiltersSidebar filters={filters} onFiltersChange={setFilters} />
-              </SheetContent>
-            </Sheet>
-          </div>
+  {/* Grid/List View Toggle (Only visible on md and above) */}
+  <div className="hidden md:flex items-center border rounded-lg overflow-hidden">
+    <Button
+      variant={viewMode === 'grid' ? 'default' : 'ghost'}
+      size="sm"
+      onClick={() => setViewMode('grid')}
+    >
+      <Grid className="h-4 w-4" />
+    </Button>
+    <Button
+      variant={viewMode === 'list' ? 'default' : 'ghost'}
+      size="sm"
+      onClick={() => setViewMode('list')}
+    >
+      <List className="h-4 w-4" />
+    </Button>
+  </div>
+</div>
+
+
         </div>
 
         {/* AI Recommendations Section */}
