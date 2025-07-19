@@ -10,7 +10,9 @@ import { HelmetProvider } from 'react-helmet-async';
 import Landing from "./pages/Landing";
 import ListingGrid from "./pages/ListingGrid";
 import ListingDetail from "./pages/ListingDetail";
-import Auth from "./pages/Auth";
+// import Auth from "./pages/Auth";
+import Login from "./pages/Login"
+import Register from "./pages/Register"
 import CustomerDashboard from "./pages/CustomerDashboard";
 import VendorDashboard from "./pages/VendorDashboard";
 import NotFound from "./pages/NotFound";
@@ -42,10 +44,10 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/listings" element={<ListingGrid />} />
               <Route path="/listing/:id" element={<ListingDetail />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/auth/login" element={<Auth />} />
-              <Route path="/auth/signup" element={<Auth />} />
-              <Route path="/auth/vendor-signup" element={<Auth />} />
+              <Route path="/auth" element={<Login />} />
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/signup" element={<Register />} />
+              <Route path="/auth/vendor-signup" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/verification" element={<VerificationPage />} />
               <Route path="/reset-password" element={<ResetPassword />} />

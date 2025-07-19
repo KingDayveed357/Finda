@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link,  useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,11 +17,11 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchParams] = useSearchParams();
+  // const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  const token = searchParams.get('token');
-  const email = searchParams.get('email');
+  // const token = searchParams.get('token');
+  // const email = searchParams.get('email');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
