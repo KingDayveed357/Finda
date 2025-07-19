@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,13 +15,13 @@ interface AuthLayoutProps {
   icon: ReactNode;
 }
 
-const AuthLayout = ({ 
-  children, 
-  title, 
-  description, 
-  seoTitle, 
-  seoDescription, 
-  icon 
+const AuthLayout = ({
+  children,
+  title,
+  description,
+  seoTitle,
+  seoDescription,
+  icon
 }: AuthLayoutProps) => {
   return (
     <Layout>

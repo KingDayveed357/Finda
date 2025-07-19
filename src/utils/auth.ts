@@ -1,32 +1,30 @@
 import type { AuthFormData } from '@/types/auth';
 
-export const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-export const validatePassword = (password: string): { isValid: boolean; message?: string } => {
-  if (password.length < 8) {
-    return { isValid: false, message: 'Password must be at least 8 characters long' };
-  }
-  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' };
-  }
-  return { isValid: true };
-};
-
-export const validatePhoneNumber = (phone: string): boolean => {
-  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-  return phoneRegex.test(phone.replace(/\s/g, ''));
-};
-
-export const sanitizeFormData = (formData: AuthFormData): AuthFormData => {
+export const createVendorRegistrationData = (formData: AuthFormData) => {
   return {
-    ...formData,
+    username: formData.username.trim(),
     email: formData.email.trim().toLowerCase(),
-    fullName: formData.fullName.trim(),
-    businessName: formData.businessName.trim(),
-    businessDescription: formData.businessDescription.trim(),
-    phone: formData.phone.trim()
+    password: formData.password,
+    password2: formData.confirmPassword,
+    first_name: formData.firstName.trim(),
+    last_name: formData.lastName.trim(),
+    fullName: formData.fullName || `${formData.firstName} ${formData.lastName}`, // Fixed property access
+    business_name: formData.businessName || '', // Provide default value
+    business_description: formData.businessDescription || '', // Provide default value
+    phone: formData.phone || '', // Provide default value
   };
+};
+
+export const validateAuthFormData = (formData: AuthFormData): string[] => {
+  const errors: string[] = [];
+  
+  if (!formData.email) errors.push('Email is required');
+  if (!formData.password) errors.push('Password is required');
+  if (!formData.confirmPassword) errors.push('Confirm password is required');
+  if (formData.password !== formData.confirmPassword) errors.push('Passwords do not match');
+  if (!formData.username) errors.push('Username is required');
+  if (!formData.firstName) errors.push('First name is required');
+  if (!formData.lastName) errors.push('Last name is required');
+  
+  return errors;
 };

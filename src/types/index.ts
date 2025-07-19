@@ -3,6 +3,25 @@ export interface PriceRange {
   max?: number;
 }
 
+export interface Message {
+  id: string;
+  text: string;
+  isBot: boolean;
+  timestamp: Date;
+  error?: string;
+  suggestions?: string[];
+  recommendations?: Product[];
+  externalProducts?: ExternalProduct[];
+  followUpQuestions?: string[];
+  actionButtons?: ActionButton[]; // Added missing property
+}
+
+export interface ActionButton {
+  text: string;
+  action: string;
+  url?: string;
+}
+
 export interface Listing {
   id: string;
   title: string;
@@ -35,19 +54,8 @@ export interface ProductComparison {
   externalAdvantages: string[];
 }
 
-export interface Message {
-  id: string;
-  text: string;
-  isBot: boolean;
-  timestamp: Date;
-  suggestions?: string[];
-  recommendations?: Listing[];
-  externalProducts?: ExternalProduct[];
-  comparison?: ProductComparison;
-  followUpQuestions?: string[];
-  isLoading?: boolean;
-  error?: string;
-}
+
+
 
 export const externalPlatforms: Record<string, ExternalPlatform> = {
   jumia: { name: 'Jumia', logo: '🛒' },

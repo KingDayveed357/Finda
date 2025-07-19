@@ -1,4 +1,3 @@
-// hooks/useAuth.ts
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { API_CONFIG } from '@/config/api';
@@ -121,8 +120,12 @@ export const useAuth = () => {
         }
       );
 
-      // Store token using the API client method
-      apiClient.setAuthToken(response.token);
+      // Store token using the API client method - Fixed type assertion
+      if (response.token) {
+        apiClient.setAuthToken(response.token);
+      } else {
+        throw new Error('No token received from server');
+      }
       
       console.log('Login successful, token stored');
       
@@ -166,7 +169,7 @@ export const useAuth = () => {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         password2: formData.confirmPassword,
-        phone: formData.phone,
+        phone: formData.phone || '', // Provide default value
         first_name: formData.firstName.trim(),
         last_name: formData.lastName.trim(),
       };

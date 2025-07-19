@@ -1,4 +1,3 @@
-// hooks/useChatbot.ts
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiClient } from '../utils/api';
 import { authEvents } from './useAuth';
@@ -82,10 +81,11 @@ export const useChatbot = () => {
     isMountedRef.current = true;
     initializeMessages();
     
-    // Listen for custom auth events from apiClient
-    const handleAuthStateChange = async (event: CustomEvent) => {
+    // Listen for custom auth events from apiClient - Fixed event listener types
+    const handleAuthStateChange = async (event: Event) => {
+      const customEvent = event as CustomEvent;
       if (isMountedRef.current) {
-        console.log('Auth state changed via custom event:', event.detail);
+        console.log('Auth state changed via custom event:', customEvent.detail);
         // Add a delay to ensure auth state is fully updated
         setTimeout(async () => {
           if (isMountedRef.current) {
@@ -95,9 +95,10 @@ export const useChatbot = () => {
       }
     };
 
-    const handleTokenCleared = async (event: CustomEvent) => {
+    const handleTokenCleared = async (event: Event) => {
+      const customEvent = event as CustomEvent;
       if (isMountedRef.current) {
-        console.log('Token cleared via custom event:', event.detail);
+        console.log('Token cleared via custom event:', customEvent.detail);
         setAuthState(false);
         setTimeout(async () => {
           if (isMountedRef.current) {
@@ -119,8 +120,8 @@ export const useChatbot = () => {
     });
 
     // Listen for custom events from apiClient
-    window.addEventListener('auth-state-changed', handleAuthStateChange as EventListener);
-    window.addEventListener('auth-token-cleared', handleTokenCleared as EventListener);
+    window.addEventListener('auth-state-changed', handleAuthStateChange);
+    window.addEventListener('auth-token-cleared', handleTokenCleared);
     
     // Also listen for storage events (for cross-tab auth sync)
     const handleStorageChange = async (e: StorageEvent) => {
@@ -138,8 +139,8 @@ export const useChatbot = () => {
     return () => {
       isMountedRef.current = false;
       unsubscribeAuthEvents();
-      window.removeEventListener('auth-state-changed', handleAuthStateChange as EventListener);
-      window.removeEventListener('auth-token-cleared', handleTokenCleared as EventListener);
+      window.removeEventListener('auth-state-changed', handleAuthStateChange);
+      window.removeEventListener('auth-token-cleared', handleTokenCleared);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [initializeMessages]);

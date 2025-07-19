@@ -2,8 +2,8 @@ export interface CustomerRegistrationData {
   username: string;
   email: string;
   password: string;
-  password2:string;
-  phone:string;
+  password2: string;
+  phone: string;
   first_name: string;
   last_name: string;
 }
@@ -20,6 +20,7 @@ export interface AuthFormData {
   username: string;
   firstName: string;
   lastName: string;
+  fullName?: string; // Added missing property
   // Vendor-specific fields (kept for future use)
   businessName?: string;
   businessDescription?: string;
