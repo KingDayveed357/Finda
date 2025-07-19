@@ -10,7 +10,7 @@ export interface Message {
   timestamp: Date;
   error?: string;
   suggestions?: string[];
-  recommendations?: Product[];
+  recommendations?: string[];
   externalProducts?: ExternalProduct[];
   followUpQuestions?: string[];
   actionButtons?: ActionButton[]; // Added missing property
