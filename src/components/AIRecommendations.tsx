@@ -18,13 +18,39 @@ interface AIRecommendationsProps {
   };
 }
 
+// Transform function to convert Listing to UnifiedListing format
+const transformListingToUnified = (listing: Listing) => {
+  return {
+    ...listing,
+    // Add missing properties with sensible defaults
+    ratingCount: Math.floor(Math.random() * 500) + 50, // Random rating count between 50-550
+    image: listing.images[0] || '', // Use first image as main image
+    isPromoted: Math.random() > 0.8, // 20% chance of being promoted
+    isFeatured: listing.rating >= 4.7, // Featured if rating is 4.7 or higher
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    slug: listing.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+    // Map price to match expected format
+    price: typeof listing.price === 'number' ? listing.price : listing.price.min,
+    priceMax: typeof listing.price === 'object' ? listing.price.max : undefined,
+    // Ensure vendor has required structure
+    vendor: listing.vendor ? {
+      ...listing.vendor,
+      name: listing.vendor.name,
+      image: listing.vendor.image
+    } : undefined,
+    // Keep original images array
+    images: listing.images
+  };
+};
+
 const AIRecommendations = ({ 
   searchHistory = [], 
   currentCategory, 
 //   userPreferences 
 }: AIRecommendationsProps) => {
-  const [recommendations, setRecommendations] = useState<Listing[]>([]);
-  const [topRated, setTopRated] = useState<Listing[]>([]);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [topRated, setTopRated] = useState<any[]>([]);
   const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -52,8 +78,13 @@ const AIRecommendations = ({
         'Professional Logo Design'
       ];
 
-      setRecommendations(aiRecommendations.slice(0, 6));
-      setTopRated(topRatedListings);
+      // Transform listings to match UnifiedListing format
+      setRecommendations(
+        aiRecommendations.slice(0, 6).map(transformListingToUnified)
+      );
+      setTopRated(
+        topRatedListings.map(transformListingToUnified)
+      );
       setTrendingSearches(trending);
     } catch (error) {
       console.error('Failed to generate AI recommendations:', error);

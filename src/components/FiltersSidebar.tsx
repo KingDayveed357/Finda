@@ -7,7 +7,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { X, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { categoryService, type Category } from '../service/categoryService';
-import { locationService, type Country, type State, type City } from '../service/LocationService';
+import { locationService, type Country, type State, type City } from '@/service/LocationService';
 
 interface UIFilters {
   categories: number[];

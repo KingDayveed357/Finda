@@ -11,21 +11,25 @@ import Layout from '@/components/Layout';
 import { productService, type Product } from '@/service/productService';
 import { serviceService, type Service } from '@/service/servicesService';
 
-// Unified type for both products and services
-type UnifiedListing = (Product | Service) & {
-  isService?: boolean;
-  title?: string;
-  description?: string;
-  images?: string[];
+// Unified type for both products and services - separate from original types
+type UnifiedListing = {
+  // Original data (either Product or Service)
+  originalData: Product | Service;
+  // Common transformed properties
+  id: number;
+  isService: boolean;
+  title: string;
+  description: string;
+  images: string[];
   price?: number | { min: number; max: number };
-  location?: string;
-  tags?: string[];
-  vendor?: {
+  location: string;
+  tags: string[];
+  vendor: {
     name: string;
     image: string;
     rating: number;
   };
-  slug?: string;
+  slug: string;
 };
 
 // Review type
@@ -146,7 +150,8 @@ const RelatedItems = ({ currentListing, isService }: { currentListing: UnifiedLi
             .filter(service => service.id !== currentListing.id)
             .slice(0, 10)
             .map(service => ({
-              ...service,
+              originalData: service,
+              id: service.id,
               isService: true,
               title: service.service_name,
               description: service.service_description,
@@ -156,7 +161,7 @@ const RelatedItems = ({ currentListing, isService }: { currentListing: UnifiedLi
                 max: service.max_price || service.starting_price || 0
               },
               location: service.city_details?.full_address || 'Location not specified',
-              tags: service.tags?.split(',').map(tag => tag.trim()) || [],
+              tags: service.tags ? service.tags.split(',').map(tag => tag.trim()) : [],
               vendor: {
                 name: service.user_details?.first_name && service.user_details?.last_name 
                   ? `${service.user_details.first_name} ${service.user_details.last_name}`
@@ -172,14 +177,15 @@ const RelatedItems = ({ currentListing, isService }: { currentListing: UnifiedLi
             .filter(product => product.id !== currentListing.id)
             .slice(0, 10)
             .map(product => ({
-              ...product,
+              originalData: product,
+              id: product.id,
               isService: false,
               title: product.product_name,
               description: product.product_description,
               images: [product.product_image, ...(product.gallery_images || [])].filter(Boolean),
               price: product.product_price ?? 0,
               location: `${product.product_city || ''}, ${product.product_state || ''}, ${product.product_country || ''}`.replace(/^,\s*|,\s*$/g, '').replace(/,\s*,/g, ',') || 'Location not specified',
-              tags: product.tags?.split(',').map(tag => tag.trim()) || [],
+              tags: product.tags ? product.tags.split(',').map(tag => tag.trim()) : [],
               vendor: {
                 name: product.user_details?.first_name && product.user_details?.last_name 
                   ? `${product.user_details.first_name} ${product.user_details.last_name}`
@@ -601,7 +607,8 @@ const ListingDetail = () => {
 
         // Transform the data to unified format
         const unifiedListing: UnifiedListing = {
-          ...data,
+          originalData: data,
+          id: data.id,
           isService,
           title: isService ? (data as Service).service_name : (data as Product).product_name,
           description: isService ? (data as Service).service_description : (data as Product).product_description,
@@ -706,7 +713,7 @@ const ListingDetail = () => {
       setListing({
         ...listing,
         vendor: {
-          ...listing.vendor!,
+          ...listing.vendor,
           rating: newAverageRating
         }
       });
@@ -715,7 +722,7 @@ const ListingDetail = () => {
 
   const getContactInfo = () => {
     if (listing.isService) {
-      const service = listing as Service;
+      const service = listing.originalData as Service;
       return {
         phone: service.provider_phone,
         email: service.provider_email,
@@ -724,7 +731,7 @@ const ListingDetail = () => {
         linkedin: service.provider_linkedin
       };
     } else {
-      const product = listing as Product;
+      const product = listing.originalData as Product;
       return {
         phone: product.product_provider_phone,
         email: null, // Product interface doesn't have provider_email
@@ -790,7 +797,7 @@ const ListingDetail = () => {
                   </div>
 
                   {/* Remote service badge */}
-                  {listing.isService && (listing as Service).serves_remote && (
+                  {listing.isService && (listing.originalData as Service).serves_remote && (
                     <Badge className="absolute top-4 right-4 bg-indigo-600 text-white">
                       Remote Available
                     </Badge>
@@ -893,81 +900,81 @@ const ListingDetail = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(listing as Service).provider_name && (
+                    {(listing.originalData as Service).provider_name && (
                       <div>
                         <h4 className="font-semibold text-gray-900">Provider Name</h4>
-                        <p className="text-gray-600">{(listing as Service).provider_name}</p>
+                        <p className="text-gray-600">{(listing.originalData as Service).provider_name}</p>
                       </div>
                     )}
 
-                    {(listing as Service).provider_title && (
+                    {(listing.originalData as Service).provider_title && (
                       <div>
                         <h4 className="font-semibold text-gray-900">Provider Title</h4>
-                        <p className="text-gray-600">{(listing as Service).provider_title}</p>
+                        <p className="text-gray-600">{(listing.originalData as Service).provider_title}</p>
                       </div>
                     )}
                     
-                    {(listing as Service).provider_experience && (
+                    {(listing.originalData as Service).provider_experience && (
                       <div>
                         <h4 className="font-semibold text-gray-900">Experience</h4>
-                        <p className="text-gray-600">{(listing as Service).provider_experience}</p>
+                        <p className="text-gray-600">{(listing.originalData as Service).provider_experience}</p>
                       </div>
                     )}
                     
-                    {(listing as Service).response_time && (
+                    {(listing.originalData as Service).response_time && (
                       <div>
                         <h4 className="font-semibold text-gray-900">Response Time</h4>
                         <p className="text-gray-600 flex items-center">
                           <Clock className="h-4 w-4 mr-1" />
-                          {(listing as Service).response_time}
+                          {(listing.originalData as Service).response_time}
                         </p>
                       </div>
                     )}
                     
-                    {(listing as Service).availability && (
+                    {(listing.originalData as Service).availability && (
                       <div>
                         <h4 className="font-semibold text-gray-900">Availability</h4>
-                        <p className="text-gray-600">{(listing as Service).availability}</p>
+                        <p className="text-gray-600">{(listing.originalData as Service).availability}</p>
                       </div>
                     )}
 
-                    {(listing as Service).price_type && (
+                    {(listing.originalData as Service).price_type && (
                       <div>
                         <h4 className="font-semibold text-gray-900">Price Type</h4>
-                        <p className="text-gray-600 capitalize">{(listing as Service).price_type}</p>
+                        <p className="text-gray-600 capitalize">{(listing.originalData as Service).price_type}</p>
                       </div>
                     )}
                   </div>
 
-                  {(listing as Service).provider_bio && (
+                  {(listing.originalData as Service).provider_bio && (
                     <div>
                       <h4 className="font-semibold text-gray-900">About Provider</h4>
-                      <p className="text-gray-600">{(listing as Service).provider_bio}</p>
+                      <p className="text-gray-600">{(listing.originalData as Service).provider_bio}</p>
                     </div>
                   )}
 
-                  {(listing as Service).provider_expertise && (
+                  {(listing.originalData as Service).provider_expertise && (
                     <div>
                       <h4 className="font-semibold text-gray-900">Expertise</h4>
-                      <p className="text-gray-600">{(listing as Service).provider_expertise}</p>
+                      <p className="text-gray-600">{(listing.originalData as Service).provider_expertise}</p>
                     </div>
                   )}
 
-                  {(listing as Service).provider_certifications && (
+                  {(listing.originalData as Service).provider_certifications && (
                     <div>
                       <h4 className="font-semibold text-gray-900">Certifications</h4>
-                      <p className="text-gray-600">{(listing as Service).provider_certifications}</p>
+                      <p className="text-gray-600">{(listing.originalData as Service).provider_certifications}</p>
                     </div>
                   )}
 
-                  {(listing as Service).provider_languages && (
+                  {(listing.originalData as Service).provider_languages && (
                     <div>
                       <h4 className="font-semibold text-gray-900">Languages</h4>
-                      <p className="text-gray-600">{(listing as Service).provider_languages}</p>
+                      <p className="text-gray-600">{(listing.originalData as Service).provider_languages}</p>
                     </div>
                   )}
 
-                  {(listing as Service).serves_remote && (
+                  {(listing.originalData as Service).serves_remote && (
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h4 className="font-semibold text-blue-900 flex items-center">
                         <LocationIcon className="h-4 w-4 mr-2" />
@@ -975,7 +982,7 @@ const ListingDetail = () => {
                       </h4>
                       <p className="text-blue-700 text-sm mt-1">
                         This service provider offers remote services
-                        {(listing as Service).service_radius && ` within ${(listing as Service).service_radius}km`}
+                        {(listing.originalData as Service).service_radius && ` within ${(listing.originalData as Service).service_radius}km`}
                       </p>
                     </div>
                   )}
@@ -991,25 +998,25 @@ const ListingDetail = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(listing as Product).product_brand && (
+                    {(listing.originalData as Product).product_brand && (
                       <div>
                         <h4 className="font-semibold text-gray-900">Brand</h4>
-                        <p className="text-gray-600">{(listing as Product).product_brand}</p>
+                        <p className="text-gray-600">{(listing.originalData as Product).product_brand}</p>
                       </div>
                     )}
                     
-                    {(listing as Product).product_category && (
+                    {(listing.originalData as Product).product_category && (
                       <div>
                         <h4 className="font-semibold text-gray-900">Category</h4>
-                        <p className="text-gray-600">{(listing as Product).product_category}</p>
+                        <p className="text-gray-600">{(listing.originalData as Product).product_category}</p>
                       </div>
                     )}
                     
-                    {(listing as Product).product_status && (
+                    {(listing.originalData as Product).product_status && (
                       <div>
                         <h4 className="font-semibold text-gray-900">Status</h4>
                         <Badge variant="outline" className="capitalize">
-                          {(listing as Product).product_status}
+                          {(listing.originalData as Product).product_status}
                         </Badge>
                       </div>
                     )}
@@ -1128,13 +1135,13 @@ const ListingDetail = () => {
                 <Separator className="my-4" />
 
                 <div className="space-y-2 text-sm text-gray-600">
-                  <div>Views: {(listing as any).views_count || 0}</div>
+                  <div>Views: {(listing.originalData as any).views_count || 0}</div>
                   {listing.isService && (
-                    <div>Contacts: {(listing as Service).contacts_count || 0}</div>
+                    <div>Contacts: {(listing.originalData as Service).contacts_count || 0}</div>
                   )}
-                  <div>Member since: {new Date((listing as any).created_at || Date.now()).getFullYear()}</div>
-                  {listing.isService && (listing as Service).response_time && (
-                    <div>Response time: {(listing as Service).response_time}</div>
+                  <div>Member since: {new Date((listing.originalData as any).created_at || Date.now()).getFullYear()}</div>
+                  {listing.isService && (listing.originalData as Service).response_time && (
+                    <div>Response time: {(listing.originalData as Service).response_time}</div>
                   )}
                 </div>
 
