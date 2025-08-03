@@ -1,42 +1,39 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { tokenManager } from '../utils/token-manager';
-import { authEvents } from './useAuth';
+import { authService } from '@/service/authService'; // Import authService
+import { authEvents } from '@/hooks/useAuth';
 import { chatbotService } from '@/service/chatbotService';
 import type { Message } from '../types';
-import { API_CONFIG } from '../config/api';
 
 export const useChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [authState, setAuthState] = useState(() => tokenManager.isAuthenticated());
+  const [authState, setAuthState] = useState(() => authService.isAuthenticated());
   
   // Use ref to track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
 
-  // Enhanced auth check with API validation
+  // Enhanced auth check with authService.getCurrentUser()
   const validateAuthState = useCallback(async (): Promise<boolean> => {
     try {
-      // First check local token existence
-      const hasToken = tokenManager.isAuthenticated();
-      if (!hasToken) return false;
-
-      // Validate token with a lightweight API call
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.USER}`, {
-        headers: {
-          'Authorization': `Token ${tokenManager.getToken()}`
-        }
-      });
-
-      const isValid = response.ok;
-      if (!isValid) {
-        // Clear invalid token
-        tokenManager.clearToken();
+      // First check local token existence using authService
+      const hasToken = authService.isAuthenticated();
+      if (!hasToken) {
+        console.log('[useChatbot] No token found, user not authenticated');
+        return false;
       }
+
+      // Validate token by fetching current user data using authService
+      await authService.getCurrentUser();
       
-      return isValid;
+      console.log('[useChatbot] Auth validation successful');
+      return true;
     } catch (error) {
-      console.error('Auth validation failed:', error);
+      console.error('[useChatbot] Auth validation failed:', error);
+      
+      // Clear invalid token using authService
+      authService.clearToken();
+      
       return false;
     }
   }, []);
@@ -45,16 +42,33 @@ export const useChatbot = () => {
   const initializeMessages = useCallback(async () => {
     if (!isMountedRef.current) return;
     
-    // Validate auth state with API
+    // Validate auth state using authService
     const isAuth = await validateAuthState();
     
     // Update local auth state
     setAuthState(isAuth);
     
+    // Get user info if authenticated
+    let userInfo = null;
+    if (isAuth) {
+      try {
+        userInfo = authService.getStoredUser();
+        console.log('[useChatbot] User info:', userInfo?.first_name || 'Unknown');
+      } catch (error) {
+        console.warn('[useChatbot] Failed to get user info:', error);
+      }
+    }
+    
+    const greeting = isAuth && userInfo?.first_name 
+      ? `Hello ${userInfo.first_name}!` 
+      : isAuth 
+        ? "Hello!" 
+        : "Hello!";
+    
     const initialMessage: Message = {
       id: '1',
       text: isAuth 
-        ? "Hello! I'm your AI shopping assistant for Finda. I can help you find the perfect products from both local vendors and popular platforms like Jumia, AliExpress, and Amazon. What are you looking for today?"
+        ? `${greeting} I'm your AI shopping assistant for Finda. I can help you find the perfect products from both local vendors and popular platforms like Jumia, AliExpress, and Amazon. What are you looking for today?`
         : "Hello! To use the AI shopping assistant, please log in to your account first. Once you're logged in, I can help you find products, compare prices, and get personalized recommendations!",
       isBot: true,
       timestamp: new Date(),
@@ -86,7 +100,7 @@ export const useChatbot = () => {
     const handleAuthStateChange = async (event: Event) => {
       const customEvent = event as CustomEvent;
       if (isMountedRef.current) {
-        console.log('Auth state changed via custom event:', customEvent.detail);
+        console.log('[useChatbot] Auth state changed via custom event:', customEvent.detail);
         setTimeout(async () => {
           if (isMountedRef.current) {
             await initializeMessages();
@@ -98,7 +112,7 @@ export const useChatbot = () => {
     const handleTokenCleared = async (event: Event) => {
       const customEvent = event as CustomEvent;
       if (isMountedRef.current) {
-        console.log('Token cleared via custom event:', customEvent.detail);
+        console.log('[useChatbot] Token cleared via custom event:', customEvent.detail);
         setAuthState(false);
         setTimeout(async () => {
           if (isMountedRef.current) {
@@ -125,7 +139,7 @@ export const useChatbot = () => {
     
     // Also listen for storage events (for cross-tab auth sync)
     const handleStorageChange = async (e: StorageEvent) => {
-      if (e.key === 'token' && isMountedRef.current) {
+      if ((e.key === 'token' || e.key === 'user') && isMountedRef.current) {
         setTimeout(async () => {
           if (isMountedRef.current) {
             await initializeMessages();
@@ -148,7 +162,7 @@ export const useChatbot = () => {
   const sendMessage = useCallback(async (messageText: string) => {
     if (!messageText.trim() || !isMountedRef.current) return;
 
-    // Double-check authentication with API validation before sending
+    // Double-check authentication using authService before sending
     const isCurrentlyAuth = await validateAuthState();
     
     if (!isCurrentlyAuth) {
@@ -234,11 +248,9 @@ export const useChatbot = () => {
           { label: "Sign Up", action: "navigate", payload: "/auth/signup" }
         ];
         
-        // Update auth state immediately
+        // Update auth state immediately and clear tokens using authService
         setAuthState(false);
-        
-        // Clear any stale tokens
-        tokenManager.clearToken();
+        authService.clearToken();
         
         // Reinitialize messages after a short delay
         setTimeout(async () => {
@@ -331,7 +343,7 @@ export const useChatbot = () => {
       // Clear chat history on the server
       await chatbotService.clearAllHistory();
     } catch (error) {
-      console.warn('Failed to clear server chat history:', error);
+      console.warn('[useChatbot] Failed to clear server chat history:', error);
       // Continue with local clearing even if server clear fails
     }
     
@@ -342,6 +354,7 @@ export const useChatbot = () => {
   // Method to refresh chatbot state when user logs in/out
   const refreshChatbotState = useCallback(async () => {
     if (!isMountedRef.current) return;
+    console.log('[useChatbot] Refreshing chatbot state');
     await initializeMessages();
   }, [initializeMessages]);
 
@@ -350,7 +363,7 @@ export const useChatbot = () => {
     try {
       return await chatbotService.isAvailable();
     } catch (error) {
-      console.error('Failed to check chatbot availability:', error);
+      console.error('[useChatbot] Failed to check chatbot availability:', error);
       return false;
     }
   }, []);
@@ -360,7 +373,7 @@ export const useChatbot = () => {
     try {
       return await chatbotService.getChatbotStatus();
     } catch (error) {
-      console.error('Failed to get chatbot status:', error);
+      console.error('[useChatbot] Failed to get chatbot status:', error);
       return null;
     }
   }, []);
