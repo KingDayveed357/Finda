@@ -3,6 +3,7 @@ import { tokenManager } from '../utils/token-manager';
 import { authEvents } from './useAuth';
 import { chatbotService } from '@/service/chatbotService';
 import type { Message } from '../types';
+import { API_CONFIG } from '../config/api';
 
 export const useChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -21,9 +22,9 @@ export const useChatbot = () => {
       if (!hasToken) return false;
 
       // Validate token with a lightweight API call
-      const response = await fetch('/api/auth/me', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.USER}`, {
         headers: {
-          'Authorization': `Bearer ${tokenManager.getToken()}`
+          'Authorization': `Token ${tokenManager.getToken()}`
         }
       });
 
