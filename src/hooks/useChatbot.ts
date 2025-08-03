@@ -21,7 +21,7 @@ export const useChatbot = () => {
       if (!hasToken) return false;
 
       // Validate token with a lightweight API call
-      const response = await fetch('/api/auth/validate', {
+      const response = await fetch('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${tokenManager.getToken()}`
         }
