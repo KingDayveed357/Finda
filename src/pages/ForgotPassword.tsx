@@ -5,34 +5,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner'; // Changed from '@/components/ui/sonner'
+// import { toast } from 'sonner'; // Changed from '@/components/ui/sonner'
 import Layout from '@/components/Layout';
 import SEO from '@/components/SEO';
+import { useAuth } from '@/hooks/useAuth';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+
+  const {resetPassword, isLoading} = useAuth()
+
+  
+  // const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setIsSuccess(true);
-      toast.success("Password reset email sent!", {
-        description: "Check your inbox for reset instructions.",
-      });
-    } catch (error) {
-      toast.error("Error", {
-        description: "Failed to send reset email. Please try again.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    await resetPassword(email);
   };
 
   if (isSuccess) {

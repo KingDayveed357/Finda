@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { apiClient } from '../utils/api';
+import { tokenManager } from '../utils/token-manager';
 import { authEvents } from './useAuth';
+import { chatbotService } from '@/service/chatbotService';
 import type { Message } from '../types';
 
 export const useChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [authState, setAuthState] = useState(() => apiClient.isAuthenticated());
+  const [authState, setAuthState] = useState(() => tokenManager.isAuthenticated());
   
   // Use ref to track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
@@ -16,21 +17,20 @@ export const useChatbot = () => {
   const validateAuthState = useCallback(async (): Promise<boolean> => {
     try {
       // First check local token existence
-      const hasToken = apiClient.isAuthenticated();
+      const hasToken = tokenManager.isAuthenticated();
       if (!hasToken) return false;
 
       // Validate token with a lightweight API call
-      // You can replace this with your actual auth validation endpoint
       const response = await fetch('/api/auth/validate', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // or however you store the token
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         }
       });
 
       const isValid = response.ok;
       if (!isValid) {
         // Clear invalid token
-        localStorage.removeItem('token'); // Adjust based on your storage method
+        tokenManager.clearToken();
       }
       
       return isValid;
@@ -66,27 +66,26 @@ export const useChatbot = () => {
           ]
         : [],
       actionButtons: isAuth ? [] : [
-        { text: "Log In", action: "navigate", url: "/auth/login" },
-        { text: "Sign Up", action: "navigate", url: "/auth/signup" },
-        { text: "Learn More", action: "navigate", url: "/about" }
+        { label: "Log In", action: "navigate", payload: "/auth/login" },
+        { label: "Sign Up", action: "navigate", payload: "/auth/signup" },
+        { label: "Learn More", action: "navigate", payload: "/about" }
       ]
     };
     
     setMessages([initialMessage]);
-    setError(null); // Clear any previous errors when reinitializing
+    setError(null);
   }, [validateAuthState]);
 
-  // Enhanced auth state listener with more robust checking
+  // Enhanced auth state listener
   useEffect(() => {
     isMountedRef.current = true;
     initializeMessages();
     
-    // Listen for custom auth events from apiClient - Fixed event listener types
+    // Listen for custom auth events from tokenManager
     const handleAuthStateChange = async (event: Event) => {
       const customEvent = event as CustomEvent;
       if (isMountedRef.current) {
         console.log('Auth state changed via custom event:', customEvent.detail);
-        // Add a delay to ensure auth state is fully updated
         setTimeout(async () => {
           if (isMountedRef.current) {
             await initializeMessages();
@@ -119,7 +118,7 @@ export const useChatbot = () => {
       }
     });
 
-    // Listen for custom events from apiClient
+    // Listen for custom events from tokenManager
     window.addEventListener('auth-state-changed', handleAuthStateChange);
     window.addEventListener('auth-token-cleared', handleTokenCleared);
     
@@ -164,8 +163,8 @@ export const useChatbot = () => {
         timestamp: new Date(),
         error: "Authentication required",
         actionButtons: [
-          { text: "Log In", action: "navigate", url: "/auth/login" },
-          { text: "Sign Up", action: "navigate", url: "/auth/signup" }
+          { label: "Log In", action: "navigate", payload: "/auth/login" },
+          { label: "Sign Up", action: "navigate", payload: "/auth/signup" }
         ]
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -194,14 +193,19 @@ export const useChatbot = () => {
     setError(null);
 
     try {
-      const response = await apiClient.sendChatbotMessage(messageText);
+      // Use chatbotService with safe method that includes error handling
+      const result = await chatbotService.sendMessageSafe(messageText);
       
       if (!isMountedRef.current) return;
       
-      // Parse the bot response to extract structured data
-      const botMessage = parseBotResponse(response.reply);
-      
-      setMessages(prev => [...prev, botMessage]);
+      if (result.success && result.response) {
+        // Parse the bot response to extract structured data
+        const botMessage = parseBotResponse(result.response.reply);
+        setMessages(prev => [...prev, botMessage]);
+      } else {
+        // Handle service-level errors
+        throw new Error(result.error || 'Unknown error occurred');
+      }
     } catch (err) {
       if (!isMountedRef.current) return;
       
@@ -209,9 +213,9 @@ export const useChatbot = () => {
       setError(errorMessage);
       
       let botResponseText = "I'm sorry, I encountered an error while processing your request.";
-      let actionButtons: Array<{ text: string; action: string; url?: string }> = [
-        { text: "Try Again", action: "retry" },
-        { text: "Contact Support", action: "navigate", url: "/support" }
+      let actionButtons: Array<{ label: string; action: string; payload?: any }> = [
+        { label: "Try Again", action: "retry" },
+        { label: "Contact Support", action: "navigate", payload: "/support" }
       ];
 
       // Handle specific authentication errors
@@ -225,17 +229,17 @@ export const useChatbot = () => {
         
         botResponseText = "Your session has expired or you don't have permission to access this feature. Please log in again to continue using the AI shopping assistant.";
         actionButtons = [
-          { text: "Log In", action: "navigate", url: "/auth/login" },
-          { text: "Sign Up", action: "navigate", url: "/auth/signup" }
+          { label: "Log In", action: "navigate", payload: "/auth/login" },
+          { label: "Sign Up", action: "navigate", payload: "/auth/signup" }
         ];
         
         // Update auth state immediately
         setAuthState(false);
         
         // Clear any stale tokens
-        localStorage.removeItem('token'); // Adjust based on your storage method
+        tokenManager.clearToken();
         
-        // Reinitialize messages after a short delay to ensure auth state is updated
+        // Reinitialize messages after a short delay
         setTimeout(async () => {
           if (isMountedRef.current) {
             await initializeMessages();
@@ -321,6 +325,15 @@ export const useChatbot = () => {
 
   const clearMessages = useCallback(async () => {
     if (!isMountedRef.current) return;
+    
+    try {
+      // Clear chat history on the server
+      await chatbotService.clearAllHistory();
+    } catch (error) {
+      console.warn('Failed to clear server chat history:', error);
+      // Continue with local clearing even if server clear fails
+    }
+    
     await initializeMessages();
     setError(null);
   }, [initializeMessages]);
@@ -331,6 +344,26 @@ export const useChatbot = () => {
     await initializeMessages();
   }, [initializeMessages]);
 
+  // Check chatbot availability
+  const checkAvailability = useCallback(async (): Promise<boolean> => {
+    try {
+      return await chatbotService.isAvailable();
+    } catch (error) {
+      console.error('Failed to check chatbot availability:', error);
+      return false;
+    }
+  }, []);
+
+  // Get chatbot status
+  const getChatbotStatus = useCallback(async () => {
+    try {
+      return await chatbotService.getChatbotStatus();
+    } catch (error) {
+      console.error('Failed to get chatbot status:', error);
+      return null;
+    }
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -338,6 +371,8 @@ export const useChatbot = () => {
     sendMessage,
     clearMessages,
     refreshChatbotState,
-    isAuthenticated: authState // Use local auth state instead of calling apiClient directly
+    checkAvailability,
+    getChatbotStatus,
+    isAuthenticated: authState
   };
 };

@@ -1,14 +1,15 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { API_CONFIG } from '@/config/api';
-import { apiClient } from '@/utils/api';
+import { authService, AUTH_EVENTS } from '../service';
 import type { 
   AuthFormData, 
   CustomerRegistrationData, 
-  LoginData, 
-  AuthResponse, 
-  LoginResponse, 
-  ApiErrorResponse 
+  VendorRegistrationData,
+  LoginData,
+  UserType,
+  UserProfileUpdate,
+  AuthResponse
 } from '@/types/auth';
 
 // Enhanced event system for auth state changes
@@ -36,105 +37,42 @@ class AuthEventEmitter {
 
 export const authEvents = new AuthEventEmitter();
 
+// Listen to token manager events and propagate them
+if (typeof window !== 'undefined') {
+  window.addEventListener(AUTH_EVENTS?.STATE_CHANGED || 'auth-state-changed', () => {
+    authEvents.emit();
+  });
+  
+  window.addEventListener(AUTH_EVENTS?.TOKEN_CLEARED || 'auth-token-cleared', () => {
+    authEvents.emit();
+  });
+}
+
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const makeApiRequest = async <T>(url: string, options: RequestInit): Promise<T> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-
-    try {
-      console.log('Making API request to:', url);
-      console.log('Request options:', {
-        method: options.method,
-        headers: options.headers,
-        body: options.body
-      });
-
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-      });
-
-      clearTimeout(timeoutId);
-
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log('Error response text:', errorText);
-        
-        let errorData: ApiErrorResponse;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { detail: errorText || `HTTP error! status: ${response.status}` };
-        }
-
-        // Handle different error formats
-        let errorMessage = errorData.detail;
-        
-        // Check if it's a validation error object
-        if (typeof errorData === 'object' && !errorData.detail) {
-          const errors = Object.entries(errorData)
-            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-            .join('; ');
-          errorMessage = errors || `HTTP error! status: ${response.status}`;
-        }
-
-        throw new Error(errorMessage);
-      }
-
-      const responseData = await response.json();
-      console.log('Success response:', responseData);
-      return responseData;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.error('API request error:', error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Network error occurred');
-    }
-  };
-
-  const login = async (username: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true);
     try {
-      const loginData: LoginData = { username, password };
+      const loginData: LoginData = { username: email, password };
       
-      const response = await makeApiRequest<LoginResponse>(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.LOGIN}`,
-        {
-          method: 'POST',
-          body: JSON.stringify(loginData),
-          headers: {
-             'Content-Type': 'application/json',
-             'Accept': 'application/json'
-          }
-        }
-      );
-
-      // Store token using the API client method - Fixed type assertion
-      if (response.token) {
-        apiClient.setAuthToken(response.token);
-      } else {
-        throw new Error('No token received from server');
-      }
+      console.log('Attempting login with:', { email });
+      
+      const response = await authService.login(loginData);
       
       console.log('Login successful, token stored');
-      
-      // Notify other components about auth state change
-      authEvents.emit();
       
       toast.success("Login successful!", {
         description: "Welcome back to Finda!",
       });
+
+      // Redirect based on user type
+      if (response.user.user_type === 'vendor') {
+        navigate('/vendor/dashboard');
+      } else {
+        navigate('/dashboard'); // or wherever customers should go
+      }
 
       console.log('Login successful:', response);
     } catch (error) {
@@ -142,58 +80,68 @@ export const useAuth = () => {
       toast.error("Login failed", {
         description: error instanceof Error ? error.message : "Please check your credentials and try again.",
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
   const logout = async (): Promise<void> => {
-    console.log('Logging out user');
-    
-    // Clear token using the API client method
-    apiClient.logout();
-    
-    // Notify other components about auth state change
-    authEvents.emit();
-    
-    toast.success("Logged out successfully", {
-      description: "See you next time!",
-    });
+    setIsLoading(true);
+    try {
+      console.log('Logging out user');
+      
+      await authService.logout();
+      
+      toast.success("Logged out successfully", {
+        description: "See you next time!",
+      });
+
+      // Redirect to login page
+      navigate('/auth/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still show success message as token is cleared locally even if backend fails
+      toast.success("Logged out successfully", {
+        description: "See you next time!",
+      });
+      navigate('/auth/login');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const registerCustomer = async (formData: AuthFormData): Promise<void> => {
     setIsLoading(true);
     try {
       const registrationData: CustomerRegistrationData = {
-        username: formData.username.trim(),
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         password2: formData.confirmPassword,
-        phone: formData.phone || '', // Provide default value
+        phone: formData.phone || '', 
         first_name: formData.firstName.trim(),
         last_name: formData.lastName.trim(),
+        profile: formData.profile || null,
       };
 
-      console.log('Registration data being sent:', registrationData);
-
-      const response = await makeApiRequest<AuthResponse>(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.REGISTER}`,
-        {
-          method: 'POST',
-          body: JSON.stringify(registrationData),
-        }
-      );
-
-      toast.success("Account created successfully!", {
-        description: "You can now sign in with your credentials.",
+      console.log('Customer registration data being sent:', {
+        ...registrationData,
+        password: '[REDACTED]',
+        password2: '[REDACTED]'
       });
 
-      console.log('Registration successful:', response);
-      
-      // Optionally auto-login after registration
-      // await login(formData.username, formData.password);
+      const response = await authService.registerCustomer(registrationData);
+
+      toast.success("Account created successfully!", {
+        description: "Welcome to Finda! You are now logged in.",
+      });
+
+      // Redirect to customer dashboard
+      navigate('/dashboard');
+
+      console.log('Customer registration successful:', response);
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Customer registration error:', error);
       toast.error("Registration failed", {
         description: error instanceof Error ? error.message : "Please try again later.",
       });
@@ -203,27 +151,281 @@ export const useAuth = () => {
     }
   };
 
-  const register = async (formData: AuthFormData, userType: string): Promise<void> => {
+  const registerVendor = async (formData: AuthFormData): Promise<void> => {
+    setIsLoading(true);
+    try {
+      if (!formData.businessName) {
+        throw new Error("Business name is required for vendor registration");
+      }
+
+      const registrationData: VendorRegistrationData = {
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        password2: formData.confirmPassword,
+        phone: formData.phone || '', 
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        business_name: formData.businessName.trim(),
+        business_description: formData.businessDescription || '',
+        business_image: formData.businessImage || null,
+        profile: formData.profile || null,
+      };
+
+      console.log('Vendor registration data being sent:', {
+        ...registrationData,
+        password: '[REDACTED]',
+        password2: '[REDACTED]'
+      });
+
+      const response = await authService.registerVendor(registrationData);
+
+      toast.success("Vendor account created successfully!", {
+        description: "Welcome to Finda! You are now logged in as a vendor.",
+      });
+
+      // Redirect to vendor dashboard
+      navigate('/vendor/dashboard');
+
+      console.log('Vendor registration successful:', response);
+    } catch (error) {
+      console.error('Vendor registration error:', error);
+      toast.error("Vendor registration failed", {
+        description: error instanceof Error ? error.message : "Please try again later.",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (formData: AuthFormData, userType: UserType): Promise<void> => {
     if (userType === 'customer') {
       await registerCustomer(formData);
+    } else if (userType === 'vendor') {
+      await registerVendor(formData);
     } else {
-      // Vendor registration not implemented yet
-      toast.error("Vendor registration not available", {
-        description: "This feature is coming soon.",
+      toast.error("Invalid user type", {
+        description: "Please select either customer or vendor.",
       });
+      throw new Error("Invalid user type");
+    }
+  };
+
+  const getCurrentUser = async (): Promise<AuthResponse> => {
+    setIsLoading(true);
+    try {
+      const user = await authService.getCurrentUser();
+      return user;
+    } catch (error) {
+      console.error('Get current user error:', error);
+      toast.error("Failed to fetch user data", {
+        description: error instanceof Error ? error.message : "Please try again later.",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Update user profile (full update)
+   */
+  const updateProfile = async (profileData: UserProfileUpdate): Promise<AuthResponse> => {
+    setIsLoading(true);
+    try {
+      console.log('Updating profile with data:', profileData);
+      
+      const updatedUser = await authService.updateProfile(profileData);
+      
+      toast.success("Profile updated successfully!", {
+        description: "Your profile information has been saved.",
+      });
+
+      console.log('Profile update successful:', updatedUser);
+      return updatedUser;
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast.error("Profile update failed", {
+        description: error instanceof Error ? error.message : "Please try again later.",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Partially update user profile
+   */
+  const updateProfilePartial = async (profileData: Partial<UserProfileUpdate>): Promise<AuthResponse> => {
+    setIsLoading(true);
+    try {
+      console.log('Partially updating profile with data:', profileData);
+      
+      const updatedUser = await authService.updateProfilePartial(profileData);
+      
+      toast.success("Profile updated successfully!", {
+        description: "Your profile changes have been saved.",
+      });
+
+      console.log('Partial profile update successful:', updatedUser);
+      return updatedUser;
+    } catch (error) {
+      console.error('Partial profile update error:', error);
+      toast.error("Partial Profile update failed", {
+        description: error instanceof Error ? error.message : "Please try again later.",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Delete user account
+   */
+  const deleteAccount = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      console.log('Deleting user account');
+      
+      await authService.deleteAccount();
+      
+      toast.success("Account deleted successfully", {
+        description: "Your account and all associated data have been removed.",
+      });
+
+      // Redirect to home or login page
+      navigate('/');
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      toast.error("Account deletion failed", {
+        description: error instanceof Error ? error.message : "Please try again later.",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshToken = async (): Promise<void> => {
+    try {
+      await authService.refreshToken();
+      console.log('Token refreshed successfully');
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      // Token refresh failure usually means user needs to log in again
+      throw error;
+    }
+  };
+
+  /**
+   * Request password reset via email
+   * @param email - User's email address
+   */
+  const resetPassword = async (email: string): Promise<void> => {
+    setIsLoading(true);
+    try {
+      console.log('Requesting password reset for:', email);
+      
+      await authService.resetPassword(email);
+      
+      toast.success("Password reset email sent!", {
+        description: "Check your email for reset instructions. If you don't see it, check your spam folder.",
+      });
+
+      console.log('Password reset request successful');
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast.error("Password reset failed", {
+        description: error instanceof Error ? error.message : "Please try again later.",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Change current user's password
+   * @param oldPassword - Current password
+   * @param newPassword - New password
+   */
+  const changePassword = async (oldPassword: string, newPassword: string): Promise<void> => {
+    setIsLoading(true);
+    try {
+      console.log('Attempting to change password');
+      
+      await authService.changePassword(oldPassword, newPassword);
+      
+      toast.success("Password changed successfully!", {
+        description: "Your password has been updated. Please use your new password for future logins.",
+      });
+
+      console.log('Password change successful');
+    } catch (error) {
+      console.error('Password change error:', error);
+      toast.error("Password change failed", {
+        description: error instanceof Error ? error.message : "Please check your current password and try again.",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const isAuthenticated = (): boolean => {
-    return apiClient.isAuthenticated();
+    return authService.isAuthenticated();
+  };
+
+  const getToken = (): string | null => {
+    return authService.getToken();
+  };
+
+  const getStoredUser = () => {
+    return authService.getStoredUser();
+  };
+
+  const isVendor = (): boolean => {
+    return authService.isVendor();
+  };
+
+  const isCustomer = (): boolean => {
+    return authService.isCustomer();
   };
 
   return { 
+    // Authentication methods
     login, 
     logout, 
     register, 
-    registerCustomer, 
+    registerCustomer,
+    registerVendor,
+    
+    // Password management
+    resetPassword,
+    changePassword,
+    
+    // Profile management
+    updateProfile,
+    updateProfilePartial,
+    deleteAccount,
+    
+    // Token management
+    refreshToken,
+    getToken,
+    
+    // User management
+    getCurrentUser,
+    getStoredUser,
+    isVendor,
+    isCustomer,
+    
+    // State
     isLoading, 
-    isAuthenticated 
+    isAuthenticated,
+    
+    // Events
+    authEvents
   };
 };

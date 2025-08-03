@@ -1,7 +1,7 @@
 import { ArrowRight, Search, Zap, Shield, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import Layout from '@/components/Layout';
 import { mockCategories } from '@/lib/mock-ai';
@@ -21,7 +21,7 @@ const Landing = () => {
             Find the perfect products and services with intelligent recommendations. 
             Connect with trusted vendors worldwide.
           </p>
-     <div className="max-w-2xl mx-auto mb-8">
+     {/* <div className="max-w-2xl mx-auto mb-8">
   <div className="relative">
     <Input
       type="text"
@@ -36,7 +36,7 @@ const Landing = () => {
 </Button>
 
   </div>
-</div>
+</div> */}
 
           <Button size="lg" variant="secondary" asChild>
             <Link to="/listings">

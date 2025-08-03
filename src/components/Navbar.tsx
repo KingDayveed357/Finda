@@ -1,6 +1,5 @@
-
-import { useState } from 'react';
-import { Search, Menu, User, Heart, ShoppingCart, MessageCircle, Wallet, Gift, Sparkles } from 'lucide-react';
+import { useState , useEffect } from 'react';
+import { Search, Menu, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,23 +7,46 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
+  // DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { mockCategories } from '@/lib/mock-ai';
+// import { Badge } from '@/components/ui/badge';
 import MobileSearchModal from './MobileSearchModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
+import { useAuth } from '@/hooks/useAuth';
+import AuthStatus from '@/components/auth/AuthStatus';
+import { categoryService} from '@/service/categoryService';
+import type { Category } from '@/service/categoryService';
 
 const NavBar = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [unreadMessages] = useState(3);
+  // const [unreadMessages] = useState(3);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const { addToHistory } = useSearchHistory();
+  const { isAuthenticated } = useAuth();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        // Fetch all categories for the dropdown
+        const data = await categoryService.getCategories();
+        setCategories(data);
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+        // Optionally set some fallback categories or show an error state
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,77 +112,36 @@ const NavBar = () => {
               {/* Categories Dropdown - Hidden on mobile */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="hidden md:flex">
+                  <Button variant="ghost" className="hidden md:flex" disabled={isLoadingCategories}>
                     <Menu className="h-4 w-4 mr-2" />
-                    Categories
+                    {isLoadingCategories ? 'Loading...' : 'Categories'}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56">
-                  {mockCategories.map((category) => (
-                    <DropdownMenuItem key={category.id} asChild>
-                      <Link to={`/listings?category=${category.id}`} className="flex items-center">
-                        <span className="mr-2">{category.icon}</span>
-                        <span>{category.name}</span>
-                        <span className="ml-auto text-xs text-gray-500">({category.count})</span>
-                      </Link>
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <DropdownMenuItem key={category.id} asChild>
+                        <Link to={`/listings?category=${category.slug}`} className="flex items-center">
+                          <span className="mr-2">{category.icon || '📁'}</span>
+                          {/* <img src={category.image} className='' alt="image" /> */}
+                          <span>{category.name}</span>
+                          <span className="ml-auto text-xs text-gray-500">
+                            ({category.products_count || 0}{category.category_type === 'both' ? '+' + (category.services_count || 0) : ''})
+                          </span>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      {isLoadingCategories ? 'Loading categories...' : 'No categories available'}
                     </DropdownMenuItem>
-                  ))}
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* User Actions */}
-              {isLoggedIn ? (
-                <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-                    <Link to="/rewards">
-                      <Gift className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-                    <Link to="/wallet">
-                      <Wallet className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to="/messages" className="relative">
-                      <MessageCircle className="h-4 w-4" />
-                      {unreadMessages > 0 && (
-                        <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs min-w-[16px] h-4 flex items-center justify-center p-0">
-                          {unreadMessages}
-                        </Badge>
-                      )}
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" className="hidden sm:flex">
-                    <Heart className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="hidden sm:flex">
-                    <ShoppingCart className="h-4 w-4" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <User className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link to="/customer-dashboard">Customer Dashboard</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/vendor-dashboard">Vendor Dashboard</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link to="/analytics">Analytics</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setIsLoggedIn(false)}>
-                        Sign Out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+              {/* Show AuthStatus if authenticated, otherwise show Sign In/Sign Up buttons */}
+              {isAuthenticated() ? (
+                <AuthStatus />
               ) : (
                 <div className="flex items-center space-x-2">
                   <Button variant="ghost" asChild className="hidden sm:flex">

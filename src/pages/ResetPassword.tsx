@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Link,  useNavigate } from 'react-router-dom';
+import { Link} from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Lock, Eye, EyeOff } from 'lucide-react';
-import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import SEO from '@/components/SEO';
+import { useAuth } from '@/hooks/useAuth';
 
 const ResetPassword = () => {
   const [formData, setFormData] = useState({
@@ -16,47 +16,19 @@ const ResetPassword = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
+ 
+   const {changePassword, isLoading} = useAuth();
+
   // const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   
   // const token = searchParams.get('token');
   // const email = searchParams.get('email');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords don't match", {
-        description: "Please make sure both passwords are identical.",
-      });
-      return;
-    }
-
-    if (formData.password.length < 8) {
-      toast.error("Password too short", {
-        description: "Password must be at least 8 characters long.",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast.success("Password reset successful!", {
-        description: "You can now login with your new password.",
-      });
-      
-      navigate('/auth?type=login');
-    } catch (error) {
-      toast.error("Error", {
-        description: "Failed to reset password. Please try again.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    await changePassword(formData.password, formData.confirmPassword);
   };
 
   return (

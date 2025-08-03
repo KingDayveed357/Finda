@@ -1,26 +1,19 @@
-// types/index.ts
-export interface PriceRange {
-  min?: number;
-  max?: number;
-}
-
-export interface ActionButton {
-  text: string;
-  action: string;
-  url?: string;
-}
-
-// Main product interface (renamed from Listing for consistency)
 export interface Product {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: number | { min: number; max: number };
   rating: number;
   category: string;
   images: string[];
   tags: string[];
   link?: string;
+  location?: string;
+  isService?: boolean;
+  isPromoted?: boolean;
+  providerName?: string;
+  providerPhone?: string;
+  ratingCount?: number;
 }
 
 // Keep Listing as alias for backward compatibility
@@ -39,6 +32,13 @@ export interface ExternalProduct {
 export interface ExternalPlatform {
   name: string;
   logo: string;
+}
+
+// Represents an action button in a message (e.g., for UI interactions)
+export interface ActionButton {
+  label: string ;
+  action: string;
+  payload?: any;
 }
 
 export interface Message {
@@ -67,12 +67,19 @@ export const externalPlatforms: Record<string, ExternalPlatform> = {
 };
 
 // Additional commonly used types
+export interface PriceRange {
+  min: number;
+  max: number;
+}
+
 export interface SearchFilters {
   category?: string;
   priceRange?: PriceRange;
   rating?: number;
   platform?: string;
   tags?: string[];
+  location?: string;
+  isService?: boolean | null;
 }
 
 export interface ApiResponse<T> {
@@ -90,18 +97,114 @@ export interface PaginatedResponse<T> {
   hasPrev: boolean;
 }
 
-// Chat-related types
-export interface ChatbotResponse {
-  reply: string;
-  products?: Product[];
-  externalProducts?: ExternalProduct[];
-  suggestions?: string[];
-}
-
 // User preference types
 export interface UserPreferences {
   favoriteCategories?: string[];
   priceRange?: PriceRange;
   preferredPlatforms?: string[];
   deliveryPreference?: 'fast' | 'standard' | 'cheapest';
+  locations?: string[];
+  ratings?: number;
+}
+
+// Filter types for the UI
+export interface UIFilters {
+  categories: string[];
+  locations: string[];
+  priceRange: [number, number];
+  rating: number;
+  isService: boolean | null;
+}
+
+// API Error types
+export interface ApiError {
+  message: string;
+  code?: string;
+  details?: any;
+}
+
+// Location types
+export interface LocationData {
+  countries: string[];
+  states: string[];
+  cities: string[];
+}
+
+// Service provider information
+export interface ServiceProvider {
+  name: string;
+  expertise: string;
+  experienceYears: number;
+  email: string;
+  phone: string;
+}
+
+// Extended product/service rating
+export interface Rating {
+  id: number;
+  user: number;
+  userName: string;
+  rating: number;
+  review: string;
+  createdAt: string;
+}
+
+// User information
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+// Unified search result type
+export interface SearchResult {
+  products: Product[];
+  services: Product[];
+  total: number;
+  query: string;
+  filters: SearchFilters;
+}
+
+// Sort options
+export type SortOption = 
+  | 'relevance' 
+  | 'ai-relevance' 
+  | 'price-low' 
+  | 'price-high' 
+  | 'rating' 
+  | 'newest' 
+  | 'promoted';
+
+// View mode
+export type ViewMode = 'grid' | 'list';
+
+// Loading states
+export interface LoadingState {
+  loading: boolean;
+  error: string | null;
+}
+
+// Search history item
+export interface SearchHistoryItem {
+  query: string;
+  category?: string;
+  timestamp: Date;
+}
+
+// AI recommendation types
+export interface AIRecommendation {
+  type: 'product' | 'service' | 'category' | 'search';
+  title: string;
+  description: string;
+  confidence: number;
+  data?: any;
+}
+
+export interface AISearchSuggestion {
+  query: string;
+  category?: string;
+  confidence: number;
+  type: 'trending' | 'personalized' | 'similar';
 }

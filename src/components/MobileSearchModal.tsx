@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-
+import { categoryService} from '@/service/categoryService';
+import type { Category } from '@/service/categoryService';
 interface MobileSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,9 +16,11 @@ const MobileSearchModal = ({ isOpen, onClose }: MobileSearchModalProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [popularCategories, setPopularCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const navigate = useNavigate();
 
-  // Mock AI search recommendations
+  // Mock AI search recommendations - could be replaced with real trending data
   const trendingSearches = [
     'Photography Services',
     'Web Development',
@@ -32,12 +35,28 @@ const MobileSearchModal = ({ isOpen, onClose }: MobileSearchModalProps) => {
     'Mobile App Development'
   ];
 
-  const popularCategories = [
-    { name: 'Technology', icon: '💻', count: 234 },
-    { name: 'Creative', icon: '🎨', count: 156 },
-    { name: 'Business', icon: '💼', count: 189 },
-    { name: 'Health', icon: '🏥', count: 67 }
-  ];
+  // Fetch popular categories when modal opens
+  useEffect(() => {
+    if (isOpen && popularCategories.length === 0) {
+      const fetchPopularCategories = async () => {
+        setIsLoadingCategories(true);
+        try {
+          // Fetch all categories since none are marked as featured yet
+          const categories = await categoryService.getCategories();
+          // Limit to 4 categories for better mobile UI
+          setPopularCategories(categories.slice(0, 4));
+        } catch (error) {
+          console.error('Failed to load popular categories:', error);
+          // Keep empty array to prevent infinite loading
+          setPopularCategories([]);
+        } finally {
+          setIsLoadingCategories(false);
+        }
+      };
+
+      fetchPopularCategories();
+    }
+  }, [isOpen, popularCategories.length]);
 
   useEffect(() => {
     if (searchQuery.length > 2) {
@@ -68,9 +87,30 @@ const MobileSearchModal = ({ isOpen, onClose }: MobileSearchModalProps) => {
     }
   };
 
+  const handleCategoryClick = (category: Category) => {
+    navigate(`/listings?category=${category.slug}`);
+    onClose();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSearch(searchQuery);
+  };
+
+  const getCategoryCount = (category: Category): number => {
+    const productCount = category.products_count || 0;
+    const serviceCount = category.services_count || 0;
+    
+    switch (category.category_type) {
+      case 'both':
+        return productCount + serviceCount;
+      case 'product':
+        return productCount;
+      case 'service':
+        return serviceCount;
+      default:
+        return 0;
+    }
   };
 
   return (
@@ -169,21 +209,31 @@ const MobileSearchModal = ({ isOpen, onClose }: MobileSearchModalProps) => {
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
                   Popular Categories
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {popularCategories.map((category, index) => (
-                    <button
-                      key={index}
-                      onClick={() => navigate(`/listings?category=${category.name.toLowerCase()}`)}
-                      className="p-4 rounded-lg border hover:bg-muted transition-colors text-center"
-                    >
-                      <div className="text-2xl mb-2">{category.icon}</div>
-                      <div className="font-medium text-sm">{category.name}</div>
-                      <Badge variant="secondary" className="mt-1 text-xs">
-                        {category.count}
-                      </Badge>
-                    </button>
-                  ))}
-                </div>
+                {isLoadingCategories ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                ) : popularCategories.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {popularCategories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => handleCategoryClick(category)}
+                        className="p-4 rounded-lg border hover:bg-muted transition-colors text-center"
+                      >
+                        <div className="text-2xl mb-2">{category.icon || '📁'}</div>
+                        <div className="font-medium text-sm">{category.name}</div>
+                        <Badge variant="secondary" className="mt-1 text-xs">
+                          {getCategoryCount(category)}
+                        </Badge>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    No categories available
+                  </div>
+                )}
               </div>
             )}
 

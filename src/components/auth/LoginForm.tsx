@@ -1,45 +1,78 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Lock, User } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const { login, isLoading } = useAuth();
 
+  const validateForm = (): boolean => {
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Invalid email", {
+        description: "Please enter a valid email address.",
+      });
+      return false;
+    }
+
+    // Password validation
+    if (!formData.password) {
+      toast.error("Password required", {
+        description: "Please enter your password.",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(formData.username, formData.password);
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      await login(formData.email, formData.password);
+      // Navigation is handled in the useAuth hook after successful login
+    } catch (error) {
+      // Error handling is done in the useAuth hook
+      console.error('Login error:', error);
+    }
   };
 
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className='mb-2'>Email</Label>
           <div className="relative">
             <Input
-              id="username"
-              type="text"
-              value={formData.username}
-              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
               className="pl-10"
-              placeholder="Enter your username"
+              placeholder="Enter your email address"
               required
             />
-            <User className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Mail className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
         </div>
 
         <div>
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className='mb-2'>Password</Label>
           <div className="relative">
             <Input
               id="password"

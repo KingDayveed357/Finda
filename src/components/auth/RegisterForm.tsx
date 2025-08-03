@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, User, Upload, Sparkles } from 'lucide-react';
+import { Mail, Lock, Upload, Sparkles, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,12 +19,12 @@ const RegisterForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    username: '',
     firstName: '',
     lastName: '',
     businessName: '',
     businessDescription: '',
     businessImage: null,
+    profile: null,
     phone: ''
   });
 
@@ -60,43 +60,51 @@ const RegisterForm = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, imageType: 'profile' | 'business') => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData(prev => ({ ...prev, businessImage: file }));
-      toast.success("Image uploaded", {
-        description: `${file.name} has been selected.`,
-      });
+      // Validate file size (2MB max)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("File too large", {
+          description: "Please select an image smaller than 2MB.",
+        });
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("Invalid file type", {
+          description: "Please select an image file (PNG, JPG, or JPEG).",
+        });
+        return;
+      }
+
+      if (imageType === 'profile') {
+        setFormData(prev => ({ ...prev, profile: file }));
+        toast.success("Profile image uploaded", {
+          description: `${file.name} has been selected.`,
+        });
+      } else {
+        setFormData(prev => ({ ...prev, businessImage: file }));
+        toast.success("Business image uploaded", {
+          description: `${file.name} has been selected.`,
+        });
+      }
     }
   };
 
   const validateForm = (): boolean => {
-    // Check for empty fields
-    if (!formData.username.trim()) {
-      toast.error("Username required", {
-        description: "Please enter a username.",
+    // Check for empty required fields
+    if (!formData.firstName.trim()) {
+      toast.error("First name required", {
+        description: "Please enter your first name.",
       });
       return false;
     }
 
-    // Username validation
-    if (formData.username.length < 3) {
-      toast.error("Username too short", {
-        description: "Username must be at least 3 characters long.",
-      });
-      return false;
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      toast.error("Invalid username", {
-        description: "Username can only contain letters, numbers, and underscores.",
-      });
-      return false;
-    }
-
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      toast.error("Name required", {
-        description: "Please enter your first and last name.",
+    if (!formData.lastName.trim()) {
+      toast.error("Last name required", {
+        description: "Please enter your last name.",
       });
       return false;
     }
@@ -106,6 +114,14 @@ const RegisterForm = () => {
     if (!emailRegex.test(formData.email)) {
       toast.error("Invalid email", {
         description: "Please enter a valid email address.",
+      });
+      return false;
+    }
+
+    // Phone validation (basic)
+    if (formData.phone && formData.phone.length < 10) {
+      toast.error("Invalid phone number", {
+        description: "Please enter a valid phone number.",
       });
       return false;
     }
@@ -125,6 +141,14 @@ const RegisterForm = () => {
       return false;
     }
 
+    // Vendor-specific validation
+    if (isVendor && !(formData.businessName ?? '').trim()) {
+      toast.error("Business name required", {
+        description: "Please enter your business name.",
+      });
+      return false;
+    }
+
     return true;
   };
 
@@ -135,7 +159,13 @@ const RegisterForm = () => {
       return;
     }
 
-    await register(formData, userType);
+    try {
+      await register(formData, userType);
+      // Navigation is handled in the useAuth hook after successful registration
+    } catch (error) {
+      // Error handling is done in the useAuth hook
+      console.error('Registration error:', error);
+    }
   };
 
   return (
@@ -152,22 +182,7 @@ const RegisterForm = () => {
       </Tabs>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Customer Fields */}
-        <div>
-          <Label htmlFor="username">Username</Label>
-          <div className="relative">
-            <Input
-              id="username"
-              value={formData.username}
-              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-              className="pl-10"
-              placeholder="Enter your username"
-              required
-            />
-            <User className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          </div>
-        </div>
-
+        {/* Basic Information */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="firstName">First Name</Label>
@@ -191,35 +206,71 @@ const RegisterForm = () => {
           </div>
         </div>
 
-          <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
-             <Label htmlFor="email">Email</Label>
-           <div className="relative">
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              className="pl-10"
-              placeholder="Enter your email"
-              required
-            />
-            <Mail className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="pl-10"
+                placeholder="Enter your email"
+                required
+              />
+              <Mail className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            </div>
           </div>
-          </div>
-             <div>
-              <Label htmlFor="phone">Phone Number</Label>
+          <div>
+            <Label htmlFor="phone">Phone Number</Label>
+            <div className="relative">
               <Input
                 id="phone"
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                className="pl-10"
                 placeholder="Enter your phone number"
-                
+                required
               />
+              <Phone className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
+          </div>
         </div>
 
+        {/* Profile Image Upload */}
+        <div>
+          <Label htmlFor="profile">Profile Image (Optional)</Label>
+          <div className="mt-2">
+            <div className="flex items-center justify-center w-full">
+              <label
+                htmlFor="profile"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                  <p className="mb-2 text-sm text-gray-500">
+                    <span className="font-semibold">Click to upload</span> profile image
+                  </p>
+                  <p className="text-xs text-gray-500">PNG, JPG or JPEG (MAX. 2MB)</p>
+                  {formData.profile && (
+                    <p className="text-xs text-blue-600 mt-2">
+                      {formData.profile.name}
+                    </p>
+                  )}
+                </div>
+                <input
+                  id="profile"
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 'profile')}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
 
         <div>
           <Label htmlFor="password">Password</Label>
@@ -255,15 +306,9 @@ const RegisterForm = () => {
           </div>
         </div>
 
-        {/* Vendor Fields (kept for future use but not functional) */}
+        {/* Vendor Fields */}
         {isVendor && (
           <>
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-yellow-800 text-sm">
-                <strong>Note:</strong> Vendor registration is not available yet. This feature is coming soon.
-              </p>
-            </div>
-            
             <div>
               <Label htmlFor="businessName">Business Name</Label>
               <Input
@@ -271,13 +316,13 @@ const RegisterForm = () => {
                 value={formData.businessName}
                 onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
                 placeholder="Enter your business name"
-                disabled
+                required={isVendor}
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="businessDescription">Business Description</Label>
+                <Label htmlFor="businessDescription">Business Description (Optional)</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -296,22 +341,21 @@ const RegisterForm = () => {
                 onChange={(e) => setFormData(prev => ({ ...prev, businessDescription: e.target.value }))}
                 placeholder="Describe your business..."
                 rows={3}
-                disabled
               />
             </div>
 
             <div>
-              <Label htmlFor="businessImage">Business Image</Label>
+              <Label htmlFor="businessImage">Business Image (Optional)</Label>
               <div className="mt-2">
                 <div className="flex items-center justify-center w-full">
                   <label
                     htmlFor="businessImage"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 opacity-50"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
                   >
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       <Upload className="w-8 h-8 mb-4 text-gray-500" />
                       <p className="mb-2 text-sm text-gray-500">
-                        <span className="font-semibold">Click to upload</span> or drag and drop
+                        <span className="font-semibold">Click to upload</span> business image
                       </p>
                       <p className="text-xs text-gray-500">PNG, JPG or JPEG (MAX. 2MB)</p>
                       {formData.businessImage && (
@@ -325,30 +369,17 @@ const RegisterForm = () => {
                       type="file"
                       className="hidden"
                       accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled
+                      onChange={(e) => handleImageUpload(e, 'business')}
                     />
                   </label>
                 </div>
               </div>
             </div>
-
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="Enter your phone number"
-                disabled
-              />
-            </div>
           </>
         )}
 
-        <Button type="submit" className="w-full" disabled={isLoading || isVendor}>
-          {isLoading ? 'Creating Account...' : isVendor ? 'Coming Soon' : 'Create Account'}
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? 'Creating Account...' : `Create ${isVendor ? 'Vendor' : 'Customer'} Account`}
         </Button>
       </form>
 

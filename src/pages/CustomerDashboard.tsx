@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import Layout from '@/components/Layout';
-import ListingCard from '@/components/ListingCard';
+// import ListingCard from '@/components/ListingCard';
 import { mockAI, mockListings } from '@/lib/mock-ai';
 import type { Listing } from '@/lib/mock-ai';
 
@@ -91,9 +91,9 @@ const CustomerDashboard = () => {
           <CardContent>
             {recommendations.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recommendations.slice(0, 6).map((listing) => (
+                {/* {recommendations.slice(0, 6).map((listing) => (
                   <ListingCard key={listing.id} listing={listing} />
-                ))}
+                ))} */}
               </div>
             ) : (
               <div className="text-center py-8">
@@ -121,9 +121,9 @@ const CustomerDashboard = () => {
               <CardContent>
                 {recentlyViewed.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {recentlyViewed.map((listing) => (
+                    {/* {recentlyViewed.map((listing) => (
                       <ListingCard key={listing.id} listing={listing} />
-                    ))}
+                    ))} */}
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -144,9 +144,9 @@ const CustomerDashboard = () => {
               <CardContent>
                 {favorites.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {favorites.map((listing) => (
+                    {/* {favorites.map((listing) => (
                       <ListingCard key={listing.id} listing={listing} />
-                    ))}
+                    ))} */}
                   </div>
                 ) : (
                   <div className="text-center py-8">
