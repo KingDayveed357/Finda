@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { productService, type CreateProductData } from '@/service/productService';
 import { serviceService, type CreateServiceData } from '@/service/servicesService';
 import { categoryService, type Category } from '@/service/categoryService';
-import { locationService, type Country, type State, type City } from '@/service/LocationService';
+import { locationService, type Country, type State, type City } from '@/service/locationService';
 
 interface ListingFormModalProps {
   isOpen: boolean;

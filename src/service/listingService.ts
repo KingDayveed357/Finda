@@ -2,7 +2,7 @@
 import { httpClient } from '@/utils/http-client';
 import { API_CONFIG } from '@/config/api';
 import { type Category } from './categoryService';
-import {  type Country, type State, type City } from '@/service/LocationService';
+import {  type Country, type State, type City } from '@/service/locationService';
 
 // Unified listing interface for UI consumption
 export interface UnifiedListing {
