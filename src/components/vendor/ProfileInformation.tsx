@@ -33,8 +33,8 @@ interface Props {
   setProfileImagePreview: (url: string | null) => void;
   businessImagePreview: string | null;
   setBusinessImagePreview: (url: string | null) => void;
-  profileImageRef: React.RefObject<HTMLInputElement | null> ;
-  businessImageRef: React.RefObject<HTMLInputElement | null> ;
+  profileImageRef: React.RefObject<HTMLInputElement | null>;
+  businessImageRef: React.RefObject<HTMLInputElement | null>;
   hasChanges: boolean;
   setHasChanges: (change: boolean) => void;
 }
@@ -48,7 +48,7 @@ const ProfileInformation = ({
   isEditing,
   setIsEditing,
   isLoading,
-  // updateProfilePartial,
+  updateProfilePartial, // <- Uncommented this
   profileImagePreview,
   setProfileImagePreview,
   businessImagePreview,
@@ -69,10 +69,10 @@ const ProfileInformation = ({
   ) => {
     const file = e.target.files?.[0];
     if (file) {
-            setProfileData({
+      setProfileData({
         ...profileData,
-        [type === "profile" ? "profile" : "business_image"]: file,
-        });
+        [type === "profile" ? "profile" : "business_image_url"]: file, // Fixed field name
+      });
 
       setHasChanges(true);
       const reader = new FileReader();
@@ -90,34 +90,63 @@ const ProfileInformation = ({
 
   const getChangedFields = (): Partial<UserProfileUpdate> => {
     const changes: Partial<UserProfileUpdate> = {};
+    
+    // Check text fields
     Object.keys(profileData).forEach((key) => {
       const k = key as keyof UserProfileUpdate;
-      if (profileData[k] !== originalProfileData[k]) changes[k] = profileData[k] as any;
+      if (profileData[k] !== originalProfileData[k] && typeof profileData[k] === 'string') {
+        changes[k] = profileData[k] as any;
+      }
     });
+
+    // Include file uploads if they exist
+    if (profileData.profile instanceof File) {
+      changes.profile = profileData.profile;
+    }
+    
+    if (profileData.business_image_url instanceof File) {
+      changes.business_image_url = profileData.business_image_url;
+    }
+
     return changes;
   };
 
   const handleSaveProfile = async () => {
     try {
       const changedFields = getChangedFields();
-      if (
-        Object.keys(changedFields).length === 0 &&
-        !profileImagePreview &&
-        !businessImagePreview
-      ) {
+      
+      console.log('Changed fields:', changedFields); // Debug log
+      
+      if (Object.keys(changedFields).length === 0) {
         toast.info("No changes to save.");
         setIsEditing(false);
         return;
       }
-      // const updatedUser = await updateProfilePartial(changedFields);
-      setOriginalProfileData(profileData);
+
+      // FIXED: Uncommented the actual API call
+      const updatedUser = await updateProfilePartial(changedFields);
+      
+      // Update the user state and original data with the fresh data from server
+      const newProfileData = {
+        first_name: updatedUser.first_name || "",
+        last_name: updatedUser.last_name || "",
+        email: updatedUser.email || "",
+        phone: updatedUser.phone || "",
+        business_name: updatedUser.business_name || "",
+        business_description: updatedUser.business_description || "",
+      };
+      
+      setOriginalProfileData(newProfileData);
+      setProfileData(newProfileData);
       setIsEditing(false);
       setHasChanges(false);
       setProfileImagePreview(null);
       setBusinessImagePreview(null);
-      toast.success("Your profile has been updated.");
+      
+      // Don't show toast here as it's already shown in the useAuth hook
     } catch (err) {
-      toast.error("Failed to update profile.");
+      console.error('Profile save error:', err);
+      // Don't show toast here as it's already shown in the useAuth hook
     }
   };
 
@@ -127,6 +156,14 @@ const ProfileInformation = ({
     setHasChanges(false);
     setProfileImagePreview(null);
     setBusinessImagePreview(null);
+    
+    // Clear any selected files
+    if (profileImageRef.current) {
+      profileImageRef.current.value = '';
+    }
+    if (businessImageRef.current) {
+      businessImageRef.current.value = '';
+    }
   };
 
   return (
@@ -199,7 +236,7 @@ const ProfileInformation = ({
             <div className="relative">
               <Avatar className="h-24 w-24 rounded-lg">
                 <AvatarImage
-                  src={businessImagePreview || user.business_image}
+                  src={businessImagePreview || user.business_image_url}
                   alt="Business Logo"
                 />
                 <AvatarFallback className="rounded-lg">

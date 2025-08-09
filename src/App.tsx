@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 // Import pages
 import Landing from "./pages/Landing";
@@ -33,8 +34,18 @@ import VendorOrders from "./pages/vendor/VendorOrders";
 import VendorSettings from "./pages/vendor/VendorSettings";
 import ComingSoon from "./components/ComingSoon";
 import VendorEditListing from "./pages/vendor/VendorEditListing";
+import Chat from "./pages/Chat";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 15 * 60 * 1000,   // 15 minutes  
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 const helmetContext = {};
 
 const App = () => (
@@ -69,6 +80,16 @@ const App = () => (
                 element={
                   <RouteGuard requireAuth={false}>
                     <ListingGrid />
+                  </RouteGuard>
+                } 
+              />
+
+
+              <Route 
+                path="/chat" 
+                element={
+                  <RouteGuard requireAuth={false}>
+                    <Chat />
                   </RouteGuard>
                 } 
               />
@@ -322,6 +343,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+          {/* <ReactQueryDevtools initialIsOpen={false} /> */}
       </QueryClientProvider>
     </>
   </HelmetProvider>

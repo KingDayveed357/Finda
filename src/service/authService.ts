@@ -209,8 +209,8 @@ class AuthService {
         formData.append('profile', profileData.profile);
       }
       
-      if (profileData.business_image instanceof File) {
-        formData.append('business_image', profileData.business_image);
+      if (profileData.business_image_url instanceof File) {
+        formData.append('business_image', profileData.business_image_url);
       }
 
       const response = await httpClient.put<AuthResponse>(

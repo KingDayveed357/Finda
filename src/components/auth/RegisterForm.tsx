@@ -183,9 +183,9 @@ const RegisterForm = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Basic Information */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="firstName">First Name</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div >
+            <Label htmlFor="firstName" className='mb-1' >First Name</Label>
             <Input
               id="firstName"
               value={formData.firstName}
@@ -195,7 +195,7 @@ const RegisterForm = () => {
             />
           </div>
           <div>
-            <Label htmlFor="lastName">Last Name</Label>
+            <Label htmlFor="lastName" className='mb-1'>Last Name</Label>
             <Input
               id="lastName"
               value={formData.lastName}
@@ -206,9 +206,9 @@ const RegisterForm = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className='mb-1'>Email</Label>
             <div className="relative">
               <Input
                 id="email"
@@ -223,7 +223,7 @@ const RegisterForm = () => {
             </div>
           </div>
           <div>
-            <Label htmlFor="phone">Phone Number</Label>
+            <Label htmlFor="phone" className='mb-1'>Phone Number</Label>
             <div className="relative">
               <Input
                 id="phone"
@@ -241,7 +241,7 @@ const RegisterForm = () => {
 
         {/* Profile Image Upload */}
         <div>
-          <Label htmlFor="profile">Profile Image (Optional)</Label>
+          <Label htmlFor="profile" className='mb-1'>Profile Image (Optional)</Label>
           <div className="mt-2">
             <div className="flex items-center justify-center w-full">
               <label
@@ -273,7 +273,7 @@ const RegisterForm = () => {
         </div>
 
         <div>
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className='mb-1'>Password</Label>
           <div className="relative">
             <Input
               id="password"
@@ -290,7 +290,7 @@ const RegisterForm = () => {
         </div>
 
         <div>
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Label htmlFor="confirmPassword" className='mb-1'>Confirm Password</Label>
           <div className="relative">
             <Input
               id="confirmPassword"
@@ -310,7 +310,7 @@ const RegisterForm = () => {
         {isVendor && (
           <>
             <div>
-              <Label htmlFor="businessName">Business Name</Label>
+              <Label htmlFor="businessName" className='mb-1'>Business Name</Label>
               <Input
                 id="businessName"
                 value={formData.businessName}
@@ -322,7 +322,7 @@ const RegisterForm = () => {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="businessDescription">Business Description (Optional)</Label>
+                <Label htmlFor="businessDescription" className='mb-1'>Business Description (Optional)</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -345,7 +345,7 @@ const RegisterForm = () => {
             </div>
 
             <div>
-              <Label htmlFor="businessImage">Business Image (Optional)</Label>
+              <Label htmlFor="businessImage" className='mb-1'>Business Image (Optional)</Label>
               <div className="mt-2">
                 <div className="flex items-center justify-center w-full">
                   <label

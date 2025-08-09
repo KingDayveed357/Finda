@@ -31,7 +31,7 @@ export const API_CONFIG = {
   },
   
   // Request timeout in milliseconds
-  TIMEOUT: 30000,
+  TIMEOUT: 10000,
   
   // HTTP status codes that should trigger retries
   RETRY_STATUS_CODES: [408, 429, 500, 502, 503, 504],

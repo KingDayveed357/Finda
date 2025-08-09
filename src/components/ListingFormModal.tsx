@@ -33,7 +33,7 @@ interface FormData {
   state: string;
   city: string;
   address_details: string;
-  featured_image: File | null;
+  featured_image_url: File | null;
   gallery_images: File[];
   tags: string;
   is_promoted: boolean;
@@ -84,7 +84,7 @@ const ListingFormModal = ({ isOpen, onClose, initialData, isEdit = false, onSucc
     state: '',
     city: '',
     address_details: '',
-    featured_image: null as File | null,
+    featured_image_url: null as File | null,
     gallery_images: [] as File[],
     tags: '',
     is_promoted: false,
@@ -300,7 +300,7 @@ const ListingFormModal = ({ isOpen, onClose, initialData, isEdit = false, onSucc
     if (!files) return;
 
     if (type === 'featured') {
-      setFormData(prev => ({ ...prev, featured_image: files[0] }));
+      setFormData(prev => ({ ...prev, featured_image_url: files[0] }));
     } else {
       setFormData(prev => ({ ...prev, gallery_images: Array.from(files) }));
     }
@@ -384,7 +384,7 @@ const ListingFormModal = ({ isOpen, onClose, initialData, isEdit = false, onSucc
           provider_phone: formData.provider_phone || undefined,
           provider_email: formData.provider_email || undefined,
           provider_whatsapp: formData.provider_whatsapp || undefined,
-          featured_image: formData.featured_image || undefined,
+          featured_image_url: formData.featured_image_url || undefined,
           gallery_images: formData.gallery_images && formData.gallery_images.length > 0 ? formData.gallery_images : undefined,
           is_promoted: formData.is_promoted,
           meta_title: formData.meta_title || undefined,
@@ -422,7 +422,7 @@ const ListingFormModal = ({ isOpen, onClose, initialData, isEdit = false, onSucc
           price_type: formData.price_type || undefined,
           response_time: formData.response_time || undefined,
           availability: formData.availability || undefined,
-          featured_image: formData.featured_image || undefined,
+          featured_image_url: formData.featured_image_url || undefined,
           gallery_images: formData.gallery_images.length > 0 ? formData.gallery_images : undefined,
           is_promoted: formData.is_promoted,
           meta_title: formData.meta_title || undefined,
@@ -853,19 +853,19 @@ const ListingFormModal = ({ isOpen, onClose, initialData, isEdit = false, onSucc
                 <Label htmlFor="featured_image">Featured Image</Label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                   <input
-                    id="featured_image"
+                    id="featured_image_url"
                     type="file"
                     accept="image/*"
                     onChange={(e) => handleFileChange(e, 'featured')}
                     className="hidden"
                   />
                   <label
-                    htmlFor="featured_image"
+                    htmlFor="featured_image_url"
                     className="cursor-pointer flex flex-col items-center justify-center"
                   >
                     <Upload className="h-8 w-8 text-gray-400 mb-2" />
                     <span className="text-sm text-gray-600">
-                      {formData.featured_image ? formData.featured_image.name : 'Click to upload featured image'}
+                      {formData.featured_image_url ? formData.featured_image_url.name : 'Click to upload featured image'}
                     </span>
                   </label>
                 </div>

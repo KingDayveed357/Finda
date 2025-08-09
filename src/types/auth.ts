@@ -54,7 +54,7 @@ export interface AuthResponse {
   // Vendor-specific fields
   business_name?: string;
   business_description?: string;
-  business_image?: string;
+  business_image_url?: string;
 }
 
 export interface LoginResponse {
@@ -86,7 +86,7 @@ export interface UserProfileUpdate {
   // Vendor-specific fields
   business_name?: string;
   business_description?: string;
-  business_image?: File | string;
+  business_image_url?: File | string;
 }
 
 export interface ApiErrorResponse {

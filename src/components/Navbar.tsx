@@ -121,13 +121,25 @@ const NavBar = () => {
                   {categories.length > 0 ? (
                     categories.map((category) => (
                       <DropdownMenuItem key={category.id} asChild>
-                        <Link to={`/listings?category=${category.slug}`} className="flex items-center">
-                          <span className="mr-2">{category.icon || '📁'}</span>
-                          {/* <img src={category.image} className='' alt="image" /> */}
+                        <Link  to={`/listings?category=${category.id}`} className="flex items-center">
+                          <span className="mr-1 text-lg">{category.icon || '📁'}</span>
+                          {/* <img src={category.image_url} className='h-5 w-5 rounded-full' alt="image" /> */}
                           <span>{category.name}</span>
                           <span className="ml-auto text-xs text-gray-500">
-                            ({category.products_count || 0}{category.category_type === 'both' ? '+' + (category.services_count || 0) : ''})
-                          </span>
+                         {(category.products_count !== undefined || category.services_count !== undefined) && (
+  (() => {
+    const productCount = category.products_count ?? 0;
+    const serviceCount = category.services_count ?? 0;
+
+    if (category.category_type === 'both') {
+      return `(${productCount + serviceCount})`;
+    }
+
+    return `(${productCount || serviceCount})`; // show whichever is relevant
+  })()
+)}
+
+                        </span>
                         </Link>
                       </DropdownMenuItem>
                     ))

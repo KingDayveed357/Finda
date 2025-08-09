@@ -10,7 +10,7 @@ export interface Category {
   parent: number | null;
   parent_name: string | null;
   icon: string;
-  image: string;
+  image_url: string;
   is_featured: boolean;
   subcategories: string[];
   full_path: string;

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Search, X, TrendingUp, Clock, Star } from 'lucide-react';
+import { Search, TrendingUp, Clock, Star } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { categoryService} from '@/service/categoryService';
@@ -115,7 +115,7 @@ const MobileSearchModal = ({ isOpen, onClose }: MobileSearchModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 max-w-full h-full sm:max-w-md sm:h-auto bg-background/95 backdrop-blur-md border-0 shadow-2xl">
+      <DialogContent className="p-0 max-w-full overflow-y-auto h-full sm:max-w-md sm:h-auto bg-background/95 backdrop-blur-md border-0 shadow-2xl">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center p-4 border-b">
@@ -126,13 +126,13 @@ const MobileSearchModal = ({ isOpen, onClose }: MobileSearchModalProps) => {
                 placeholder="Search products and services..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="border-0 bg-transparent text-lg placeholder:text-muted-foreground focus-visible:ring-0"
+                className="border-0 bg-transparent text-lg placeholder:text-muted-foreground shadow-none focus-visible:ring-0"
                 autoFocus
               />
             </form>
-            <Button variant="ghost" size="sm" onClick={onClose} className="ml-2">
+            {/* <Button variant="ghost" size="sm" onClick={onClose} className="ml-2">
               <X className="h-5 w-5" />
-            </Button>
+            </Button> */}
           </div>
 
           {/* Content */}

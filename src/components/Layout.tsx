@@ -1,6 +1,6 @@
 import React from 'react';
 import NavBar from './Navbar';
-import AIChatbot from './AIChatbot';
+// import AIChatbot from './AIChatbot';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,7 +11,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-gray-50">
       <NavBar />
       <main>{children}</main>
-      <AIChatbot />
+      {/* <AIChatbot /> */}
       <footer className="bg-gray-900 text-white py-12 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">

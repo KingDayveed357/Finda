@@ -254,7 +254,7 @@ const FeaturedListings = () => {
             <Card key={service.id} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
               <div className="relative">
                 <img
-                  src={service.featured_image || "/placeholder.svg"}
+                  src={service.featured_image_url || "/placeholder.svg"}
                   alt={service.service_name}
                   className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                   onError={(e) => {

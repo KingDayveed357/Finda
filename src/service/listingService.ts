@@ -1,10 +1,12 @@
-// services/listingService.ts
+// services/listingService.ts - FIXED VERSION
 import { httpClient } from '@/utils/http-client';
-import { API_CONFIG } from '@/config/api';
-import { type Category } from './categoryService';
-import {  type Country, type State, type City } from '@/service/locationService';
+// import { API_CONFIG } from '@/config/api';
+import { productService, type Product, type ProductFilters } from './productService';
+import { serviceService as servicesService, type Service, type ServiceFilters } from './servicesService';
+import { categoryService, type Category } from './categoryService';
+import { locationService, type Country, type State, type City } from './locationService';
 
-// Unified listing interface for UI consumption
+// Enhanced unified listing interface
 export interface UnifiedListing {
   id: string;
   title: string;
@@ -15,6 +17,7 @@ export interface UnifiedListing {
   category: string;
   location: string;
   image: string;
+  images: string[];
   tags: string[];
   isService: boolean;
   isPromoted: boolean;
@@ -24,7 +27,12 @@ export interface UnifiedListing {
   providerPhone: string;
   viewsCount: number;
   createdAt: string;
-  originalData: any;
+  originalData: Product | Service;
+  slug?: string;
+  vendor: {
+    name: string;
+    image: string;
+  };
 }
 
 export interface ListingFilters {
@@ -44,131 +52,35 @@ export interface ListingFilters {
   serves_remote?: boolean;
   is_verified?: boolean;
   ordering?: string;
+  my_listings?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface VendorStats {
+  totalListings: number;
+  productsCount: number;
+  servicesCount: number;
+  featuredCount: number;
+  promotedCount: number;
+  activeCount: number;
+  pausedCount: number;
+  draftCount: number;
+  totalViews: number;
+  totalSales: number;
+  averageRating: number;
 }
 
 export interface SearchResponse {
   results: {
-    products: ProductResponse[];
-    services: ServiceResponse[];
+    products: Product[];
+    services: Service[];
   };
   query: string;
-  filters_applied: any;
-}
-
-export interface ProductResponse {
-  id: number;
-  slug: string;
-  product_name: string;
-  product_description: string;
-  featured_image: string;
-  gallery_images: string[];
-  product_price: number;
-  original_price: number;
-  currency: string;
-  is_negotiable: boolean;
-  product_brand: string;
-  product_model: string;
-  product_condition: string;
-  product_status: string;
-  tags: string;
-  address_details: string;
-  provider_phone: string;
-  provider_email: string;
-  provider_whatsapp: string;
-  is_paid: boolean;
-  is_promoted: boolean;
-  is_featured: boolean;
-  promotion_fee: number;
-  views_count: number;
-  favorites_count: number;
-  created_at: string;
-  updated_at: string;
-  published_at: string;
-  expires_at: string;
-  user: number;
-  country: number;
-  state: number;
-  city: number;
-  category: number;
-  average_rating: number;
-  rating_count: number;
-  formatted_price: string;
-  discount_percentage: number;
-  currency_symbol: string;
-  full_location: string;
-  tags_list: string[];
-  user_details: {
-    id: number;
-    username: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    full_name: string;
-  };
-  country_details: any;
-  state_details: any;
-  city_details: any;
-  category_details: any;
-  recent_ratings: any[];
-}
-
-export interface ServiceResponse {
-  id: number;
-  slug: string;
-  service_name: string;
-  service_description: string;
-  featured_image: string;
-  gallery_images: string[];
-  serves_remote: boolean;
-  service_radius: number;
-  tags: string;
-  provider_name: string;
-  provider_title: string;
-  provider_bio: string;
-  provider_expertise: string;
-  provider_experience: string;
-  provider_certifications: string;
-  provider_languages: string;
-  provider_email: string;
-  provider_phone: string;
-  provider_whatsapp: string;
-  provider_website: string;
-  provider_linkedin: string;
-  starting_price: number;
-  max_price: number;
-  currency: string;
-  price_type: string;
-  service_status: string;
-  response_time: string;
-  availability: string;
-  is_paid: boolean;
-  is_promoted: boolean;
-  is_featured: boolean;
-  is_verified: boolean;
-  promotion_fee: number;
-  views_count: number;
-  contacts_count: number;
-  created_at: string;
-  updated_at: string;
-  published_at: string;
-  average_rating: number;
-  rating_count: number;
-  formatted_price_range: string;
-  user_details: any;
-  country_details: any;
-  state_details: any;
-  city_details: any;
-  category_details: any;
-}
-
-export interface ProductsApiResponse {
-  count: number;
-  results: ProductResponse[];
-}
-
-export interface ServicesApiResponse {
-  count: number;
-  results: ServiceResponse[];
+  filters_applied: Record<string, any>;
+  total_count: number;
+  page: number;
+  per_page: number;
 }
 
 export interface AvailableFilters {
@@ -188,158 +100,320 @@ export interface AIRecommendationParams {
   };
 }
 
-class ListingService {
-  private cache = new Map<string, { data: any; timestamp: number }>();
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-  private activeRequests = new Map<string, Promise<any>>();
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
 
-  private getCacheKey(url: string, params: any): string {
-    return `${url}?${new URLSearchParams(params).toString()}`;
-  }
+// Advanced caching system
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
 
-  private getFromCache<T>(key: string): T | null {
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-      return cached.data;
-    }
-    if (cached) {
-      this.cache.delete(key);
-    }
-    return null;
-  }
+class AdvancedCache {
+  private cache = new Map<string, CacheEntry<any>>();
+  private maxSize = 200;
+  private defaultTTL = 5 * 60 * 1000; // 5 minutes
+  private priorityKeys = new Set(['trending', 'promoted', 'categories', 'countries']);
 
-  private setCache(key: string, data: any): void {
-    this.cache.set(key, { data, timestamp: Date.now() });
-  }
-
-  /**
-   * Enhanced image URL processing
-   */
-  private processImageUrl(imageUrl: string | null | undefined, baseUrl?: string): string {
-    if (!imageUrl) return '/placeholder-image.jpg';
+  set<T>(key: string, data: T, ttl?: number): void {
+    const now = Date.now();
+    const expiresAt = now + (ttl || this.defaultTTL);
     
-    // If it's already a full URL, return as is
+    if (this.cache.size >= this.maxSize) {
+      this.evictOldest();
+    }
+    
+    this.cache.set(key, {
+      data,
+      timestamp: now,
+      expiresAt
+    });
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return entry.data as T;
+  }
+
+  private evictOldest(): void {
+    let oldestKey = '';
+    let oldestTime = Date.now();
+    
+    for (const [key, entry] of this.cache.entries()) {
+      if (this.priorityKeys.has(key) && Date.now() < entry.expiresAt) {
+        continue;
+      }
+      
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestKey = key;
+      }
+    }
+    
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+    }
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  size(): number {
+    return this.cache.size;
+  }
+}
+
+class ListingService {
+  private cache = new AdvancedCache();
+  private activeRequests = new Map<string, Promise<any>>();
+  private retryDelays = [1000, 2000, 4000];
+
+  private getCacheKey(endpoint: string, params: Record<string, any> = {}): string {
+    const sortedParams = Object.keys(params)
+      .sort()
+      .reduce((result, key) => {
+        result[key] = params[key];
+        return result;
+      }, {} as Record<string, any>);
+    
+    return `${endpoint}?${JSON.stringify(sortedParams)}`;
+  }
+
+  private async requestWithDedup<T>(
+    key: string, 
+    fetcher: () => Promise<T>,
+    cacheTTL?: number
+  ): Promise<T> {
+    const cached = this.cache.get<T>(key);
+    if (cached) return cached;
+    
+    if (this.activeRequests.has(key)) {
+      return this.activeRequests.get(key) as Promise<T>;
+    }
+    
+    const promise = fetcher();
+    this.activeRequests.set(key, promise);
+    
+    try {
+      const result = await promise;
+      this.cache.set(key, result, cacheTTL);
+      return result;
+    } finally {
+      this.activeRequests.delete(key);
+    }
+  }
+
+  private async withRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries = 2
+  ): Promise<T> {
+    let lastError: Error;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        
+        if (attempt === maxRetries) break;
+        
+        await new Promise(resolve => 
+          setTimeout(resolve, this.retryDelays[attempt] || 2000)
+        );
+      }
+    }
+    
+    throw lastError!;
+  }
+
+  private processImageUrl(imageUrl: string | null | undefined, baseUrl?: string): string {
+    if (!imageUrl) return '/placeholder.svg';
+    
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return imageUrl;
     }
     
-    // If it starts with /, it's a relative path from root
     if (imageUrl.startsWith('/')) {
       return baseUrl ? `${baseUrl}${imageUrl}` : imageUrl;
     }
     
-    // Handle media URLs that might need base URL
     if (baseUrl && !imageUrl.startsWith(baseUrl)) {
       return `${baseUrl}/${imageUrl}`;
     }
     
-    return imageUrl || '/placeholder-image.jpg';
+    return imageUrl || '/placeholder.svg';
   }
 
-  /**
-   * Enhanced price processing with null safety
-   */
   private processPrice(price: any): number | { min: number; max: number } | null {
-    if (price === null || price === undefined) return null;
+    if (price === null || price === undefined || price === '') return null;
     
-    // Handle numeric prices
-    if (typeof price === 'number') {
+    if (typeof price === 'number' && !isNaN(price)) {
       return price >= 0 ? price : null;
     }
     
-    // Handle string prices
     if (typeof price === 'string') {
-      const numPrice = parseFloat(price);
+      const numPrice = parseFloat(price.replace(/[^\d.-]/g, ''));
       return !isNaN(numPrice) && numPrice >= 0 ? numPrice : null;
     }
     
-    // Handle price objects
-    if (typeof price === 'object') {
-      const min = typeof price.min === 'number' ? price.min : 
-                  typeof price.min === 'string' ? parseFloat(price.min) : 0;
-      const max = typeof price.max === 'number' ? price.max : 
-                  typeof price.max === 'string' ? parseFloat(price.max) : min;
+    if (typeof price === 'object' && price !== null) {
+      const minPrice = typeof price.min === 'number' ? price.min : 
+                     typeof price.min === 'string' ? parseFloat(price.min) : 0;
+      const maxPrice = typeof price.max === 'number' ? price.max : 
+                     typeof price.max === 'string' ? parseFloat(price.max) : minPrice;
       
-      return { min: Math.max(0, min), max: Math.max(min, max) };
+      if (!isNaN(minPrice) && !isNaN(maxPrice) && minPrice >= 0 && maxPrice >= minPrice) {
+        return { min: minPrice, max: maxPrice };
+      }
     }
     
     return null;
   }
 
-  /**
-   * Enhanced tags processing
-   */
   private processTags(tags: any): string[] {
     if (Array.isArray(tags)) {
-      return tags.filter(tag => tag && typeof tag === 'string').map(tag => tag.trim());
+      return tags
+        .filter(tag => tag && typeof tag === 'string')
+        .map(tag => tag.trim())
+        .filter(Boolean)
+        .slice(0, 10);
     }
     
     if (typeof tags === 'string' && tags.trim()) {
-      return tags.split(',').map(tag => tag.trim()).filter(Boolean);
+      return tags
+        .split(/[,;|]/)
+        .map(tag => tag.trim())
+        .filter(Boolean)
+        .slice(0, 10);
     }
     
     return [];
   }
 
-  /**
-   * Transform API product to UnifiedListing with enhanced null safety
-   */
-  private transformProduct(product: ProductResponse): UnifiedListing {
+  private processGalleryImages(images: any): string[] {
+    if (Array.isArray(images)) {
+      return images
+        .filter(img => img && typeof img === 'string')
+        .map(img => this.processImageUrl(img))
+        .slice(0, 10);
+    }
+    
+    if (typeof images === 'string') {
+      try {
+        const parsed = JSON.parse(images);
+        return this.processGalleryImages(parsed);
+      } catch {
+        return [this.processImageUrl(images)];
+      }
+    }
+    
+    return [];
+  }
+
+  private transformProduct(product: Product): UnifiedListing {
+    const images = this.processGalleryImages(product.gallery_images || []);
+    const featuredImage = this.processImageUrl(
+      product.featured_image_url || (product as any).featured_image
+    );
+    
+    const allImages = featuredImage !== '/placeholder.svg' 
+      ? [featuredImage, ...images.filter(img => img !== featuredImage)]
+      : images.length > 0 
+        ? images 
+        : ['/placeholder.svg'];
+
     return {
-      id: `product-${product.id}`,
+      id: product.id.toString(),
       title: product.product_name || 'Untitled Product',
       description: product.product_description || '',
       price: this.processPrice(product.product_price),
       rating: Math.max(0, Math.min(5, product.average_rating || 0)),
       ratingCount: Math.max(0, product.rating_count || 0),
-      category: product.category_details?.name || 'Uncategorized',
-      location: product.full_location || product.address_details || 'Location not specified',
-      image: this.processImageUrl(product.featured_image),
-      tags: this.processTags(product.tags_list || product.tags),
+      category: product.product_category || 'Uncategorized',
+      location: product.full_location || 
+               product.address_details || 
+               [
+                 product.full_location,
+                 product.address_details,
+               ].filter(Boolean).join(', ') || 
+               'Location not specified',
+      image: featuredImage,
+      images: allImages,
+      tags: this.processTags(product.tags),
       isService: false,
       isPromoted: Boolean(product.is_promoted),
-      isFeatured: Boolean(product.is_featured),
-      isVerified: false, // Products don't have verification in this API
-      providerName: product.user_details?.full_name || 
-                   product.user_details?.username || 
-                   'Unknown Provider',
-      providerPhone: product.provider_phone || '',
+      isFeatured: Boolean((product as any).is_featured),
+      isVerified: false,
+      providerName: product.user_details?.first_name && product.user_details?.last_name
+        ? `${product.user_details.first_name} ${product.user_details.last_name}`.trim()
+        : product.user_details?.username || 'Unknown Provider',
+      providerPhone: product.product_provider_phone || '',
       viewsCount: Math.max(0, product.views_count || 0),
       createdAt: product.created_at || new Date().toISOString(),
-      originalData: product
+      originalData: product,
+      slug: product.slug,
+      vendor: {
+        name: product.user_details?.first_name && product.user_details?.last_name
+          ? `${product.user_details.first_name} ${product.user_details.last_name}`.trim()
+          : product.user_details?.username || 'Unknown Provider',
+        image: this.processImageUrl((product.user_details as any)?.profile_image) || '/avatar.jpeg'
+      }
     };
   }
 
-  /**
-   * Transform API service to UnifiedListing with enhanced null safety
-   */
-  private transformService(service: ServiceResponse): UnifiedListing {
-    // Process service price range
+  private transformService(service: Service): UnifiedListing {
     let price: number | { min: number; max: number } | null = null;
     
     if (service.starting_price !== null && service.starting_price !== undefined) {
       const startingPrice = Math.max(0, service.starting_price || 0);
-      const maxPrice = service.max_price && service.max_price > startingPrice ? 
-                      service.max_price : startingPrice * 2;
       
-      price = startingPrice === maxPrice ? startingPrice : { min: startingPrice, max: maxPrice };
+      if (service.max_price && service.max_price > startingPrice) {
+        price = { min: startingPrice, max: service.max_price };
+      } else {
+        price = startingPrice;
+      }
     }
 
-    // Build location string
     let location = 'Location not specified';
     if (service.serves_remote) {
       location = 'Remote Available';
-    } else if (service.city_details?.name) {
+    } else {
       const locationParts = [
-        service.city_details.name,
+        service.city_details?.name,
         service.state_details?.name,
         service.country_details?.name
       ].filter(Boolean);
-      location = locationParts.join(', ');
+      
+      if (locationParts.length > 0) {
+        location = locationParts.join(', ');
+      }
     }
 
+    const images = this.processGalleryImages(service.gallery_images || []);
+    const featuredImage = this.processImageUrl(service.featured_image_url);
+    
+    const allImages = featuredImage !== '/placeholder.svg' 
+      ? [featuredImage, ...images.filter(img => img !== featuredImage)]
+      : images.length > 0 
+        ? images 
+        : ['/placeholder.svg'];
+
     return {
-      id: `service-${service.id}`,
+      id: service.id.toString(),
       title: service.service_name || 'Untitled Service',
       description: service.service_description || '',
       price: price,
@@ -347,7 +421,8 @@ class ListingService {
       ratingCount: Math.max(0, service.rating_count || 0),
       category: service.category_details?.name || 'Uncategorized',
       location: location,
-      image: this.processImageUrl(service.featured_image),
+      image: featuredImage,
+      images: allImages,
       tags: this.processTags(service.tags),
       isService: true,
       isPromoted: Boolean(service.is_promoted),
@@ -359,296 +434,724 @@ class ListingService {
       providerPhone: service.provider_phone || '',
       viewsCount: Math.max(0, service.views_count || 0),
       createdAt: service.created_at || new Date().toISOString(),
-      originalData: service
+      originalData: service,
+      slug: service.slug,
+      vendor: {
+        name: service.provider_name || 
+              service.user_details?.full_name || 
+              'Unknown Provider',
+        image: this.processImageUrl((service.user_details as any)?.profile_image) || '/avatar.jpeg'
+      }
     };
   }
 
-  /**
-   * Deduplicate requests to prevent multiple identical calls
-   */
-  private async makeRequest<T>(key: string, requestFn: () => Promise<T>): Promise<T> {
-    // Check if request is already in progress
-    if (this.activeRequests.has(key)) {
-      return this.activeRequests.get(key);
-    }
+  private convertToProductFilters(filters: ListingFilters): ProductFilters {
+    const productFilters: ProductFilters = {};
 
-    // Check cache first
-    const cached = this.getFromCache<T>(key);
-    if (cached) {
-      return cached;
-    }
+    if (filters.search) productFilters.search = filters.search;
+    if (filters.category) productFilters.product_category = filters.category.toString();
+    if (filters.country) productFilters.product_country = filters.country.toString();
+    if (filters.state) productFilters.product_state = filters.state.toString();
+    if (filters.city) productFilters.product_city = filters.city.toString();
+    if (filters.min_price !== undefined) productFilters.min_price = filters.min_price;
+    if (filters.max_price !== undefined) productFilters.max_price = filters.max_price;
+    if (filters.product_condition) productFilters.product_condition = filters.product_condition;
+    if (filters.is_promoted !== undefined) productFilters.is_promoted = filters.is_promoted;
+    if (filters.ordering) productFilters.ordering = filters.ordering;
+    if (filters.my_listings) productFilters.my_products = true;
+    if (filters.limit) productFilters.page_size = filters.limit;
+    if (filters.offset && filters.limit) productFilters.page = Math.floor(filters.offset / filters.limit) + 1;
 
-    // Make request and cache it
-    const requestPromise = requestFn()
-      .then(result => {
-        this.setCache(key, result);
-        this.activeRequests.delete(key);
-        return result;
-      })
-      .catch(error => {
-        this.activeRequests.delete(key);
-        throw error;
+    return productFilters;
+  }
+
+  private convertToServiceFilters(filters: ListingFilters): ServiceFilters {
+    const serviceFilters: ServiceFilters = {};
+
+    if (filters.search) serviceFilters.search = filters.search;
+    if (filters.category) serviceFilters.service_category = filters.category.toString();
+    if (filters.country) serviceFilters.service_country = filters.country.toString();
+    if (filters.state) serviceFilters.service_state = filters.state.toString();
+    if (filters.city) serviceFilters.service_city = filters.city.toString();
+    if (filters.min_price !== undefined) serviceFilters.min_price = filters.min_price;
+    if (filters.max_price !== undefined) serviceFilters.max_price = filters.max_price;
+    if (filters.serves_remote !== undefined) serviceFilters.serves_remote = filters.serves_remote;
+    if (filters.is_verified !== undefined) serviceFilters.is_verified = filters.is_verified;
+    if (filters.ordering) serviceFilters.ordering = filters.ordering;
+    if (filters.my_listings) serviceFilters.my_services = true;
+    if (filters.limit) serviceFilters.page_size = filters.limit;
+    if (filters.offset && filters.limit) serviceFilters.page = Math.floor(filters.offset / filters.limit) + 1;
+
+    return serviceFilters;
+  }
+
+  async getAllListings(filters: ListingFilters = {}): Promise<UnifiedListing[]> {
+    const cacheKey = this.getCacheKey('all-listings', filters);
+    
+    return this.requestWithDedup(
+      cacheKey,
+      async () => {
+        try {
+          const requests: Promise<UnifiedListing[]>[] = [];
+          const itemType = filters.item_type || 'all';
+
+          if (itemType === 'products') {
+            const productFilters = this.convertToProductFilters(filters);
+            requests.push(
+              this.withRetry(() => productService.getProductsArray(productFilters))
+                .then(products => products.map(p => this.transformProduct(p)))
+                .catch(error => {
+                  console.warn('Products request failed:', error);
+                  return [];
+                })
+            );
+          } else if (itemType === 'services') {
+            const serviceFilters = this.convertToServiceFilters(filters);
+            requests.push(
+              this.withRetry(() => servicesService.getServicesArray(serviceFilters))
+                .then(services => services.map(s => this.transformService(s)))
+                .catch(error => {
+                  console.warn('Services request failed:', error);
+                  return [];
+                })
+            );
+          } else {
+            const productFilters = this.convertToProductFilters(filters);
+            const serviceFilters = this.convertToServiceFilters(filters);
+
+            requests.push(
+              this.withRetry(() => productService.getProductsArray(productFilters))
+                .then(products => products.map(p => this.transformProduct(p)))
+                .catch(error => {
+                  console.warn('Products request failed:', error);
+                  return [];
+                })
+            );
+
+            requests.push(
+              this.withRetry(() => servicesService.getServicesArray(serviceFilters))
+                .then(services => services.map(s => this.transformService(s)))
+                .catch(error => {
+                  console.warn('Services request failed:', error);
+                  return [];
+                })
+            );
+          }
+
+          const results = await Promise.all(requests);
+          const combined = results.flat();
+          
+          return this.sortListings(combined, filters.ordering || '-created_at');
+          
+        } catch (error) {
+          console.error('Error in getAllListings:', error);
+          throw new Error('Failed to load listings. Please check your connection and try again.');
+        }
+      },
+      3 * 60 * 1000
+    );
+  }
+
+  private sortListings(listings: UnifiedListing[], ordering: string): UnifiedListing[] {
+    const sorted = [...listings];
+
+    switch (ordering) {
+      case 'product_price':
+      case 'starting_price':
+        return sorted.sort((a, b) => {
+          const priceA = typeof a.price === 'number' ? a.price : (a.price?.min || 0);
+          const priceB = typeof b.price === 'number' ? b.price : (b.price?.min || 0);
+          return priceA - priceB;
+        });
+      
+      case '-product_price':
+      case '-starting_price':
+        return sorted.sort((a, b) => {
+          const priceA = typeof a.price === 'number' ? a.price : (a.price?.max || a.price?.min || 0);
+          const priceB = typeof b.price === 'number' ? b.price : (b.price?.max || b.price?.min || 0);
+          return priceB - priceA;
+        });
+      
+      case '-average_rating':
+        return sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      
+      case '-views_count':
+        return sorted.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
+      
+      case '-created_at':
+      default:
+        return sorted.sort((a, b) => {
+          if (a.isPromoted && !b.isPromoted) return -1;
+          if (!a.isPromoted && b.isPromoted) return 1;
+          if (a.isFeatured && !b.isFeatured) return -1;
+          if (!a.isFeatured && b.isFeatured) return 1;
+          
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+    }
+  }
+
+  async searchListings(filters: ListingFilters = {}): Promise<UnifiedListing[]> {
+    const cacheKey = this.getCacheKey('search-listings', filters);
+    
+    return this.requestWithDedup(
+      cacheKey,
+      async () => {
+        try {
+          const searchParams: Record<string, any> = {};
+
+          if (filters.search) searchParams.q = filters.search;
+          if (filters.category) searchParams.category = filters.category;
+          if (filters.location) searchParams.location = filters.location;
+          if (filters.min_price !== undefined) searchParams.min_price = filters.min_price;
+          if (filters.max_price !== undefined) searchParams.max_price = filters.max_price;
+          if (filters.min_rating !== undefined) searchParams.min_rating = filters.min_rating;
+          if (filters.item_type && filters.item_type !== 'all') {
+            searchParams.item_type = filters.item_type;
+          }
+
+          const response = await this.withRetry(() => 
+            httpClient.get<SearchResponse>('/api/main/search/', { params: searchParams })
+          );
+
+          const products = (response.results?.products || []).map(p => this.transformProduct(p));
+          const services = (response.results?.services || []).map(s => this.transformService(s));
+
+          return this.sortListings([...products, ...services], filters.ordering || '-created_at');
+          
+        } catch (error) {
+          console.warn('Unified search failed, falling back to individual endpoints:', error);
+          return this.getAllListings(filters);
+        }
+      },
+      2 * 60 * 1000
+    );
+  }
+
+  async getTrendingListings(): Promise<UnifiedListing[]> {
+    return this.requestWithDedup(
+      'trending-listings',
+      () => this.getAllListings({
+        ordering: '-views_count',
+        limit: 20,
+        is_promoted: true
+      }),
+      10 * 60 * 1000
+    );
+  }
+
+  async getTopRatedListings(): Promise<UnifiedListing[]> {
+    return this.requestWithDedup(
+      'top-rated-listings',
+      () => this.getAllListings({
+        min_rating: 4,
+        ordering: '-average_rating',
+        limit: 20
+      }),
+      10 * 60 * 1000
+    );
+  }
+
+  async getPromotedListings(): Promise<UnifiedListing[]> {
+    return this.requestWithDedup(
+      'promoted-listings',
+      () => this.getAllListings({
+        is_promoted: true,
+        ordering: '-created_at',
+        limit: 20
+      }),
+      5 * 60 * 1000
+    );
+  }
+
+  async getVendorListings(): Promise<UnifiedListing[]> {
+    return this.requestWithDedup(
+      'vendor-listings',
+      () => this.getAllListings({
+        my_listings: true,
+        ordering: '-created_at'
+      }),
+      2 * 60 * 1000
+    );
+  }
+
+  async getVendorStats(): Promise<VendorStats> {
+    return this.requestWithDedup(
+      'vendor-stats',
+      async () => {
+        try {
+          const [products, services] = await Promise.all([
+            this.withRetry(() => productService.getMyProducts()),
+            this.withRetry(() => servicesService.getMyServices())
+          ]);
+
+          const allListings = [
+            ...products.map(p => this.transformProduct(p)),
+            ...services.map(s => this.transformService(s))
+          ];
+
+          const activeListings = allListings.filter(l => 
+            (l.originalData as any).product_status === 'published' || 
+            (l.originalData as any).service_status === 'published'
+          );
+
+          return {
+            totalListings: allListings.length,
+            productsCount: products.length,
+            servicesCount: services.length,
+            featuredCount: allListings.filter(l => l.isFeatured).length,
+            promotedCount: allListings.filter(l => l.isPromoted).length,
+            activeCount: activeListings.length,
+            pausedCount: allListings.filter(l => 
+              (l.originalData as any).product_status === 'paused' || 
+              (l.originalData as any).service_status === 'paused'
+            ).length,
+            draftCount: allListings.filter(l => 
+              (l.originalData as any).product_status === 'draft' || 
+              (l.originalData as any).service_status === 'draft'
+            ).length,
+            totalViews: allListings.reduce((sum, l) => sum + l.viewsCount, 0),
+            totalSales: 0,
+            averageRating: allListings.length > 0 ? 
+              allListings.reduce((sum, l) => sum + l.rating, 0) / allListings.length : 0
+          };
+        } catch (error) {
+          console.error('Error getting vendor stats:', error);
+          throw new Error('Failed to load vendor statistics');
+        }
+      },
+      5 * 60 * 1000
+    );
+  }
+
+// Fixed getListingBySlugSmart method and related improvements
+// Fixed getListingBySlugSmart method and related improvements
+
+async getListingBySlugSmart(slug: string): Promise<UnifiedListing | null> {
+  const cacheKey = `listing-smart-${slug}`;
+  
+  return this.requestWithDedup(
+    cacheKey,
+    async () => {
+      try {
+        // Try both service and product in parallel to be more efficient
+        const [serviceResult, productResult] = await Promise.allSettled([
+          this.withRetry(() => servicesService.getServiceBySlug(slug)),
+          this.withRetry(() => productService.getProductBySlug(slug))
+        ]);
+
+        // Check if service was successful
+        if (serviceResult.status === 'fulfilled' && serviceResult.value) {
+          return this.transformService(serviceResult.value);
+        }
+
+        // Check if product was successful
+        if (productResult.status === 'fulfilled' && productResult.value) {
+          return this.transformProduct(productResult.value);
+        }
+
+        // Both failed - log the errors for debugging
+        console.log('Smart slug detection failed for:', slug, {
+          serviceError: serviceResult.status === 'rejected' ? serviceResult.reason : null,
+          productError: productResult.status === 'rejected' ? productResult.reason : null
+        });
+        
+        return null;
+      } catch (error) {
+        console.error('Error in smart slug detection:', error);
+        return null;
+      }
+    },
+    10 * 60 * 1000
+  );
+}
+
+
+
+// Also fix the getListingBySlug method to handle errors better
+async getListingBySlug(slug: string, type: 'product' | 'service'): Promise<UnifiedListing | null> {
+  return this.requestWithDedup(
+    `listing-slug-${type}-${slug}`,
+    async () => {
+      try {
+        if (type === 'product') {
+          const product = await this.withRetry(() => productService.getProductBySlug(slug));
+          return this.transformProduct(product);
+        } else if (type === 'service') {
+          const service = await this.withRetry(() => servicesService.getServiceBySlug(slug));
+          return this.transformService(service);
+        }
+
+        throw new Error('Invalid listing type');
+      } catch (error: any) {
+        console.error(`Error getting ${type} by slug "${slug}":`, error);
+        
+        // Handle specific error cases
+        if (error.response?.status === 404 || 
+            error.message?.includes('not found') || 
+            error.message?.includes('Not found')) {
+          return null;
+        }
+        
+        // For other errors, still return null but log them
+        console.warn(`Failed to fetch ${type} with slug ${slug}:`, error.message);
+        return null;
+      }
+    },
+    15 * 60 * 1000
+  );
+}
+  async getListing(id: string): Promise<UnifiedListing | null> {
+    return this.requestWithDedup(
+      `listing-${id}`,
+      async () => {
+        try {
+          const numericId = parseInt(id);
+
+          if (isNaN(numericId)) {
+            throw new Error('Invalid listing ID format');
+          }
+
+          // Try both product and service
+          try {
+            const product = await this.withRetry(() => productService.getProduct(numericId));
+            return this.transformProduct(product);
+          } catch (productError) {
+            try {
+              const service = await this.withRetry(() => servicesService.getService(numericId));
+              return this.transformService(service);
+            } catch (serviceError) {
+              console.error('Failed to fetch both product and service:', { productError, serviceError });
+              return null;
+            }
+          }
+        } catch (error: any) {
+          console.error('Error getting listing:', error);
+          
+          if (error.response?.status === 404 || error.message?.includes('not found')) {
+            return null;
+          }
+          
+          throw error;
+        }
+      },
+      10 * 60 * 1000
+    );
+  }
+
+  async getRelatedListings(
+    currentListing: UnifiedListing,
+    limit: number = 10
+  ): Promise<UnifiedListing[]> {
+    const cacheKey = `related-${currentListing.isService ? 'service' : 'product'}-${currentListing.id}`;
+    
+    return this.requestWithDedup(
+      cacheKey,
+      async () => {
+        try {
+          const filters: ListingFilters = {
+            item_type: currentListing.isService ? 'services' : 'products',
+            ordering: '-average_rating',
+            limit: limit + 5
+          };
+
+          const categoryId = (currentListing.originalData as any).category_details?.id || 
+                            (currentListing.originalData as any).product_category ||
+                            (currentListing.originalData as any).category;
+          
+          if (categoryId) {
+            filters.category = typeof categoryId === 'string' ? parseInt(categoryId) : categoryId;
+          }
+
+          const allListings = await this.getAllListings(filters);
+          
+          const currentListingId = currentListing.id;
+          const filtered = allListings
+            .filter(item => item.id !== currentListingId)
+            .slice(0, limit);
+
+          if (filtered.length < Math.min(6, limit)) {
+            const trendingItems = await this.getTrendingListings();
+            const additionalItems = trendingItems
+              .filter(item => 
+                item.id !== currentListingId &&
+                !filtered.some(existing => existing.id === item.id)
+              )
+              .slice(0, Math.min(6, limit) - filtered.length);
+            
+            filtered.push(...additionalItems);
+          }
+
+          return filtered.slice(0, limit);
+        } catch (error) {
+          console.error('Error getting related listings:', error);
+          
+          try {
+            const trendingItems = await this.getTrendingListings();
+            const currentListingId = currentListing.id;
+            return trendingItems
+              .filter(item => item.id !== currentListingId)
+              .slice(0, limit);
+          } catch (fallbackError) {
+            console.error('Error getting trending as fallback:', fallbackError);
+            return [];
+          }
+        }
+      },
+      5 * 60 * 1000
+    );
+  }
+
+  async prefetchListings(slugs: string[], types?: ('product' | 'service')[]): Promise<void> {
+    try {
+      const prefetchPromises = slugs.map((slug, index) => {
+        const type = types?.[index] || 'product';
+        return this.getListingBySlug(slug, type).catch(error => {
+          console.warn(`Failed to prefetch ${type} with slug ${slug}:`, error);
+          return null;
+        });
       });
 
-    this.activeRequests.set(key, requestPromise);
-    return requestPromise;
-  }
-
-  /**
-   * Advanced search using the /api/main/search/ endpoint
-   */
-  async searchListings(filters: ListingFilters = {}): Promise<UnifiedListing[]> {
-    const cacheKey = this.getCacheKey('/api/main/search/', filters);
-    
-    return this.makeRequest(cacheKey, async () => {
-      const searchParams: Record<string, any> = {};
-
-      if (filters.search) searchParams.q = filters.search;
-      if (filters.category) searchParams.category = filters.category;
-      if (filters.location) searchParams.location = filters.location;
-      if (filters.min_price !== undefined) searchParams.min_price = filters.min_price;
-      if (filters.max_price !== undefined) searchParams.max_price = filters.max_price;
-      if (filters.min_rating !== undefined) searchParams.min_rating = filters.min_rating;
-      if (filters.item_type && filters.item_type !== 'all') searchParams.item_type = filters.item_type;
-
-      const queryString = Object.entries(searchParams)
-        .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join('&');
-
-      const url = queryString ? `/api/main/search/?${queryString}` : '/api/main/search/';
-      
-      const response = await httpClient.get<SearchResponse>(url);
-
-      const products = (response.results?.products || []).map(p => this.transformProduct(p));
-      const services = (response.results?.services || []).map(s => this.transformService(s));
-
-      return [...products, ...services];
-    });
-  }
-
-  /**
-   * Get products using the products endpoint
-   */
-  async getProducts(filters: ListingFilters = {}): Promise<UnifiedListing[]> {
-    const cacheKey = this.getCacheKey(API_CONFIG.ENDPOINTS.PRODUCTS, filters);
-    
-    return this.makeRequest(cacheKey, async () => {
-      const params: Record<string, any> = {};
-
-      if (filters.search) params.search = filters.search;
-      if (filters.category) params.category = filters.category;
-      if (filters.country) params.country = filters.country;
-      if (filters.state) params.state = filters.state;
-      if (filters.city) params.city = filters.city;
-      if (filters.min_price !== undefined) params.min_price = filters.min_price;
-      if (filters.max_price !== undefined) params.max_price = filters.max_price;
-      if (filters.product_condition) params.product_condition = filters.product_condition;
-      if (filters.is_promoted !== undefined) params.is_promoted = filters.is_promoted;
-      if (filters.ordering) params.ordering = filters.ordering;
-
-      const queryString = Object.entries(params)
-        .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join('&');
-
-      const url = queryString ? `${API_CONFIG.ENDPOINTS.PRODUCTS}?${queryString}` : API_CONFIG.ENDPOINTS.PRODUCTS;
-      
-      const response = await httpClient.get<ProductsApiResponse>(url);
-      return response.results.map(product => this.transformProduct(product));
-    });
-  }
-
-  /**
-   * Get services using the services endpoint
-   */
-  async getServices(filters: ListingFilters = {}): Promise<UnifiedListing[]> {
-    const cacheKey = this.getCacheKey(API_CONFIG.ENDPOINTS.SERVICES, filters);
-    
-    return this.makeRequest(cacheKey, async () => {
-      const params: Record<string, any> = {};
-
-      if (filters.search) params.search = filters.search;
-      if (filters.category) params.category = filters.category;
-      if (filters.country) params.country = filters.country;
-      if (filters.state) params.state = filters.state;
-      if (filters.city) params.city = filters.city;
-      if (filters.min_price !== undefined) params.min_price = filters.min_price;
-      if (filters.max_price !== undefined) params.max_price = filters.max_price;
-      if (filters.serves_remote !== undefined) params.serves_remote = filters.serves_remote;
-      if (filters.is_verified !== undefined) params.is_verified = filters.is_verified;
-      if (filters.ordering) params.ordering = filters.ordering;
-
-      const queryString = Object.entries(params)
-        .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join('&');
-
-      const url = queryString ? `${API_CONFIG.ENDPOINTS.SERVICES}?${queryString}` : API_CONFIG.ENDPOINTS.SERVICES;
-      
-      const response = await httpClient.get<ServicesApiResponse>(url);
-      return response.results.map(service => this.transformService(service));
-    });
-  }
-
-  /**
-   * Get all listings - smart endpoint selection with enhanced error handling
-   */
-  async getAllListings(filters: ListingFilters = {}): Promise<UnifiedListing[]> {
-    try {
-      // Strategy 1: Use comprehensive search for complex queries
-      if (filters.search || (filters.category && (filters.country || filters.state || filters.city)) || filters.min_rating) {
-        return await this.searchListings(filters);
-      }
-
-      // Strategy 2: Use individual endpoints for simple queries
-      const requests: Promise<UnifiedListing[]>[] = [];
-
-      if (filters.item_type === 'products') {
-        requests.push(this.getProducts(filters));
-      } else if (filters.item_type === 'services') {
-        requests.push(this.getServices(filters));
-      } else {
-        // Fetch both types
-        requests.push(this.getProducts(filters));
-        requests.push(this.getServices(filters));
-      }
-
-      const results = await Promise.allSettled(requests);
-      
-      // Combine successful results
-      const successfulResults = results
-        .filter((result): result is PromiseFulfilledResult<UnifiedListing[]> => result.status === 'fulfilled')
-        .map(result => result.value)
-        .flat();
-
-      // If we got some results, return them even if some requests failed
-      if (successfulResults.length > 0) {
-        return successfulResults;
-      }
-
-      // If all individual requests failed, try fallback search
-      console.warn('Individual requests failed, trying fallback search');
-      return await this.searchListings(filters);
-      
+      await Promise.all(prefetchPromises);
+      console.log(`Prefetched ${slugs.length} listings`);
     } catch (error) {
-      console.error('Error in getAllListings:', error);
-      return []; // Return empty array instead of throwing
+      console.warn('Batch prefetch failed:', error);
     }
   }
 
-  /**
-   * Get trending listings (most viewed)
-   */
-  async getTrendingListings(): Promise<UnifiedListing[]> {
-    return this.getAllListings({
-      ordering: '-views_count'
-    });
+  getListingUrl(listing: UnifiedListing): string {
+    if (listing.slug) {
+      return `/${listing.isService ? 'service' : 'product'}/${listing.slug}`;
+    }
+    return `/listing/${listing.id}`;
   }
 
-  /**
-   * Get top rated listings
-   */
-  async getTopRatedListings(): Promise<UnifiedListing[]> {
-    return this.getAllListings({
-      min_rating: 3,
-      ordering: '-average_rating'
-    });
-  }
-
-  /**
-   * Get promoted/featured listings
-   */
-  async getPromotedListings(): Promise<UnifiedListing[]> {
-    return this.getAllListings({
-      is_promoted: true,
-      ordering: '-created_at'
-    });
-  }
-
-  /**
-   * Get AI-powered recommendations with better error handling
-   */
-  async getAIRecommendations(params: AIRecommendationParams): Promise<UnifiedListing[]> {
+  async warmCacheForListing(listing: UnifiedListing): Promise<void> {
     try {
-      const recommendationFilters: ListingFilters[] = [];
+      this.getRelatedListings(listing, 10).catch(error => {
+        console.warn('Failed to warm related listings cache:', error);
+      });
 
-      // 1. Based on search history
-      if (params.searchHistory && params.searchHistory.length > 0) {
-        recommendationFilters.push({
-          search: params.searchHistory[0],
-          is_promoted: true,
-          ordering: '-views_count'
+      const categoryId = (listing.originalData as any).category_details?.id;
+      if (categoryId) {
+        this.getAllListings({
+          category: categoryId,
+          item_type: listing.isService ? 'services' : 'products',
+          limit: 20
+        }).catch(error => {
+          console.warn('Failed to warm category listings cache:', error);
         });
       }
-
-      // 2. Based on current category
-      if (params.currentCategory) {
-        const categoryId = parseInt(params.currentCategory);
-        if (!isNaN(categoryId)) {
-          recommendationFilters.push({
-            category: categoryId,
-            min_rating: 3,
-            ordering: '-average_rating'
-          });
-        }
-      }
-
-      // 3. Featured items
-      recommendationFilters.push({
-        is_featured: true,
-        ordering: '-views_count'
-      });
-
-      // Execute recommendation strategies with error handling
-      const promises = recommendationFilters.map(filter => 
-        this.getAllListings(filter).catch(error => {
-          console.warn('Recommendation request failed:', error);
-          return [];
-        })
-      );
-      
-      const results = await Promise.all(promises);
-      
-      // Combine and deduplicate results
-      const combined = results.flat();
-      const unique = combined.filter((item, index, self) => 
-        index === self.findIndex(t => t.id === item.id)
-      );
-
-      // Sort by relevance
-      return unique.sort((a, b) => {
-        if (a.isPromoted && !b.isPromoted) return -1;
-        if (!a.isPromoted && b.isPromoted) return 1;
-        if (a.isFeatured && !b.isFeatured) return -1;
-        if (!a.isFeatured && b.isFeatured) return 1;
-        return (b.rating || 0) - (a.rating || 0);
-      }).slice(0, 20);
-      
     } catch (error) {
-      console.error('Error getting AI recommendations:', error);
-      return [];
+      console.warn('Cache warming failed:', error);
     }
   }
 
-  /**
-   * Clear cache and active requests
-   */
+  getPerformanceStats() {
+    return {
+      cacheSize: this.cache.size(),
+      activeRequests: this.activeRequests.size,
+      cacheHitRate: this.calculateCacheHitRate(),
+      averageResponseTime: this.calculateAverageResponseTime(),
+      cacheKeys: Array.from((this.cache as any).cache.keys()).slice(0, 20),
+      activeRequestKeys: Array.from(this.activeRequests.keys())
+    };
+  }
+
+  private calculateCacheHitRate(): number {
+    return 0; // Placeholder
+  }
+
+  private calculateAverageResponseTime(): number {
+    return 0; // Placeholder
+  }
+
+  async deleteListing(id: string): Promise<boolean> {
+    try {
+      const numericId = parseInt(id);
+
+      if (isNaN(numericId)) return false;
+
+      // Try to delete from both services (since we don't know the type from just ID)
+      try {
+        await this.withRetry(() => productService.deleteProduct?.(numericId));
+        this.cache.clear();
+        return true;
+      } catch (productError) {
+        try {
+          await this.withRetry(() => servicesService.deleteService?.(numericId));
+          this.cache.clear();
+          return true;
+        } catch (serviceError) {
+          console.error('Failed to delete from both services:', { productError, serviceError });
+          return false;
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting listing:', error);
+      return false;
+    }
+  }
+
+  async updateListingStatus(
+    id: string, 
+    status: 'published' | 'paused' | 'draft'
+  ): Promise<boolean> {
+    try {
+      const numericId = parseInt(id);
+
+      if (isNaN(numericId)) return false;
+
+      // Try to update in both services
+      try {
+        await this.withRetry(() => 
+          productService.updateProduct?.(numericId, { product_status: status })
+        );
+        this.cache.clear();
+        return true;
+      } catch (productError) {
+        try {
+          await this.withRetry(() => 
+            servicesService.updateService?.(numericId, { service_status: status })
+          );
+          this.cache.clear();
+          return true;
+        } catch (serviceError) {
+          console.error('Failed to update status in both services:', { productError, serviceError });
+          return false;
+        }
+      }
+    } catch (error) {
+      console.error('Error updating listing status:', error);
+      return false;
+    }
+  }
+
+  async getAvailableFilters(): Promise<AvailableFilters> {
+    return this.requestWithDedup(
+      'available-filters',
+      async () => {
+        try {
+          const [categories, countries] = await Promise.all([
+            this.withRetry(() => categoryService.getCategories()),
+            this.withRetry(() => locationService.getCountries())
+          ]);
+
+          return {
+            categories,
+            countries,
+            states: [],
+            cities: []
+          };
+        } catch (error) {
+          console.error('Error getting available filters:', error);
+          return {
+            categories: [],
+            countries: [],
+            states: [],
+            cities: []
+          };
+        }
+      },
+      15 * 60 * 1000
+    );
+  }
+
+  async getAIRecommendations(params: AIRecommendationParams): Promise<UnifiedListing[]> {
+    const cacheKey = this.getCacheKey('ai-recommendations', params);
+    
+    return this.requestWithDedup(
+      cacheKey,
+      async () => {
+        try {
+          const recommendationFilters: ListingFilters[] = [];
+
+          if (params.searchHistory && params.searchHistory.length > 0) {
+            recommendationFilters.push({
+              search: params.searchHistory[0],
+              is_promoted: true,
+              ordering: '-views_count',
+              limit: 10
+            });
+          }
+
+          if (params.currentCategory) {
+            const categoryId = parseInt(params.currentCategory);
+            if (!isNaN(categoryId)) {
+              recommendationFilters.push({
+                category: categoryId,
+                min_rating: 3,
+                ordering: '-average_rating',
+                limit: 10
+              });
+            }
+          }
+
+          recommendationFilters.push({
+            is_featured: true,
+            ordering: '-views_count',
+            limit: 10
+          });
+
+          const promises = recommendationFilters.map(filter => 
+            this.getAllListings(filter).catch(error => {
+              console.warn('Recommendation request failed:', error);
+              return [];
+            })
+          );
+          
+          const results = await Promise.all(promises);
+          const combined = results.flat();
+          
+          const unique = combined.filter((item, index, self) => 
+            index === self.findIndex(t => t.id === item.id)
+          );
+
+          return unique
+            .sort((a, b) => {
+              if (a.isPromoted && !b.isPromoted) return -1;
+              if (!a.isPromoted && b.isPromoted) return 1;
+              if (a.isFeatured && !b.isFeatured) return -1;
+              if (!a.isFeatured && b.isFeatured) return 1;
+              return (b.rating || 0) - (a.rating || 0);
+            })
+            .slice(0, 20);
+            
+        } catch (error) {
+          console.error('Error getting AI recommendations:', error);
+          return this.getTrendingListings();
+        }
+      },
+      5 * 60 * 1000
+    );
+  }
+
   clearCache(): void {
     this.cache.clear();
     this.activeRequests.clear();
   }
 
-  /**
-   * Get cache statistics
-   */
   getCacheStats() {
     return {
-      cacheSize: this.cache.size,
+      cacheSize: this.cache.size(),
       activeRequests: this.activeRequests.size,
-      cacheKeys: Array.from(this.cache.keys()),
+      cacheKeys: Array.from((this.cache as any).cache.keys()),
       activeRequestKeys: Array.from(this.activeRequests.keys())
     };
+  }
+
+  async preloadCriticalData(): Promise<void> {
+    try {
+      Promise.all([
+        this.getAvailableFilters(),
+        this.getTrendingListings(),
+        this.getPromotedListings()
+      ]).catch(error => {
+        console.warn('Background preload failed:', error);
+      });
+    } catch (error) {
+      console.warn('Critical data preload failed:', error);
+    }
   }
 }
 

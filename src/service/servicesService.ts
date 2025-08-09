@@ -79,7 +79,7 @@ export interface Service {
   slug: string;
   service_name: string;
   service_description: string;
-  featured_image: string;
+  featured_image_url: string;
   gallery_images: string[];
   serves_remote: boolean;
   service_radius: number;
@@ -134,7 +134,7 @@ export interface PaginatedResponse<T> {
 export interface CreateServiceData {
   service_name: string;
   service_description: string;
-  featured_image?: File;
+  featured_image_url?: File;
   gallery_images?: File[];
   country: number;
   state: number;
@@ -163,6 +163,7 @@ export interface CreateServiceData {
   is_promoted?: boolean;
   meta_title?: string;
   meta_description?: string;
+  service_status?:string
 }
 
 export interface ServiceFilters {
@@ -179,6 +180,10 @@ export interface ServiceFilters {
   my_services?: boolean;
   page?: number;
   page_size?: number;
+  serves_remote?:boolean;
+  is_verified?:boolean
+  min_price?:number
+  max_price?:number
 }
 
 class ServiceService {
@@ -202,8 +207,8 @@ class ServiceService {
       formData.append('provider_email', serviceData.provider_email);
       
       // Add optional fields
-      if (serviceData.featured_image) {
-        formData.append('featured_image', serviceData.featured_image);
+      if (serviceData.featured_image_url) {
+        formData.append('featured_image', serviceData.featured_image_url);
       }
       
       // Handle gallery images as separate form fields, not JSON
@@ -476,6 +481,53 @@ class ServiceService {
     
     return this.getServicesArray(myServicesFilters);
   }
+
+  /**
+ * Update a service
+ */
+async updateService(id: number, serviceData: Partial<CreateServiceData>): Promise<Service> {
+  try {
+    const formData = new FormData();
+    
+    // Add fields that are being updated
+    Object.entries(serviceData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (key === 'gallery_images' && Array.isArray(value)) {
+          value.forEach((image: File) => {
+            formData.append('gallery_images', image);
+          });
+        } else if (key === 'featured_image_url' && value instanceof File) {
+          formData.append('featured_image', value);
+        } else {
+          formData.append(key, value.toString());
+        }
+      }
+    });
+
+    const response = await httpClient.put<Service>(`${this.baseUrl}/${id}/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response;
+  } catch (error) {
+    console.error(`Error updating service ${id}:`, error);
+    throw new Error('Failed to update service');
+  }
+}
+
+/**
+ * Delete a service
+ */
+async deleteService(id: number): Promise<void> {
+  try {
+    await httpClient.delete(`${this.baseUrl}/${id}/`);
+  } catch (error) {
+    console.error(`Error deleting service ${id}:`, error);
+    throw new Error('Failed to delete service');
+  }
+}
 }
 
 export const serviceService = new ServiceService();

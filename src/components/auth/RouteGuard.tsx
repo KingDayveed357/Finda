@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-// import Lottie from 'lottie-react';
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+// import Loader from "@/assets/react.svg"
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -130,8 +131,15 @@ const RouteGuard: React.FC<RouteGuardProps> = ({
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center space-y-4">
+         <DotLottieReact
+      src="https://lottie.host/514c0a83-f05c-4af2-8458-a7ca2ef96cab/DDYXPaALxb.lottie"
+      loop
+      autoplay
+    />
+    {/* Loading */}
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p className="text-sm text-gray-600">Loading...</p>
+      
         </div>
       </div>
     );

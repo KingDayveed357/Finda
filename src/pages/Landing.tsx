@@ -1,13 +1,31 @@
+import  { useEffect, useState } from 'react';
 import { ArrowRight, Search, Zap, Shield, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 // import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import Layout from '@/components/Layout';
-import { mockCategories } from '@/lib/mock-ai';
+// import { mockCategories } from '@/lib/mock-ai';
 import FeaturedListings from '@/components/FeaturedListings';
+import { categoryService} from '@/service/categoryService';
+import type { Category } from '@/service/categoryService';
 
 const Landing = () => {
+  const [categories, setCategories] = useState<Category[]>([]); 
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        // Fetch all categories since none are marked as featured yet
+        const data = await categoryService.getCategories();
+        setCategories(data.slice(0, 8)); // Limit to 8 categories for better UI
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
   return (
     <Layout>
       {/* Hero Section */}
@@ -111,7 +129,7 @@ const Landing = () => {
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {mockCategories.map((category) => (
+            {categories.map((category) => (
               <Link
                 key={category.id}
                 to={`/listings?category=${category.id}`}
@@ -124,7 +142,19 @@ const Landing = () => {
                       {category.name}
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      {category.count} listings
+                    {(category.products_count !== undefined || category.services_count !== undefined) && (
+  (() => {
+    const productCount = category.products_count ?? 0;
+    const serviceCount = category.services_count ?? 0;
+
+    if (category.category_type === 'both') {
+      return `(${productCount + serviceCount})`;
+    }
+
+    return `${ productCount || serviceCount }`; // show whichever is relevant
+  })()
+)}
+  listings
                     </p>
                   </CardContent>
                 </Card>

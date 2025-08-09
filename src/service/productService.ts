@@ -27,12 +27,14 @@ export interface Product {
   tags: string;
   user_details: ProductUser;
   product_name: string;
-  product_image: string;
+  featured_image_url: string;
   product_description: string;
   product_price: number;
   product_category: string;
   product_country: string;
   product_state: string;
+  full_location:string;
+  address_details:string;
   product_city: string;
   product_brand: string;
   product_provider_phone: string;
@@ -63,7 +65,7 @@ export interface PaginatedResponse<T> {
 export interface CreateProductData {
   product_name: string;
   product_description: string;
-  featured_image?: File;
+  featured_image_url?: File;
   gallery_images?: File[];
   product_price: number;
   original_price?: number;
@@ -83,6 +85,7 @@ export interface CreateProductData {
   is_promoted?: boolean;
   meta_title?: string;
   meta_description?: string;
+  product_status?: string
 }
 
 export interface ProductFilters {
@@ -98,6 +101,9 @@ export interface ProductFilters {
   my_products?: boolean;
   page?: number;
   page_size?: number;
+  product_condition?: string;
+  min_price?: number;
+  max_price?: number;
 }
 
 class ProductService {
@@ -120,8 +126,8 @@ class ProductService {
       formData.append('category', productData.category.toString());
       
       // Add optional fields
-      if (productData.featured_image) {
-        formData.append('featured_image', productData.featured_image);
+      if (productData.featured_image_url) {
+        formData.append('featured_image', productData.featured_image_url);
       }
       
       // Handle gallery images as separate form fields, not JSON
@@ -355,6 +361,53 @@ class ProductService {
     
     return this.getProductsArray(myProductsFilters);
   }
+
+  /**
+ * Update a product
+ */
+async updateProduct(id: number, productData: Partial<CreateProductData>): Promise<Product> {
+  try {
+    const formData = new FormData();
+    
+    // Add fields that are being updated
+    Object.entries(productData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (key === 'gallery_images' && Array.isArray(value)) {
+          value.forEach((image: File) => {
+            formData.append('gallery_images', image);
+          });
+        } else if (key === 'featured_image_url' && value instanceof File) {
+          formData.append('featured_image', value);
+        } else {
+          formData.append(key, value.toString());
+        }
+      }
+    });
+
+    const response = await httpClient.put<Product>(`${this.baseUrl}/${id}/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response;
+  } catch (error) {
+    console.error(`Error updating product ${id}:`, error);
+    throw new Error('Failed to update product');
+  }
+}
+
+/**
+ * Delete a product
+ */
+async deleteProduct(id: number): Promise<void> {
+  try {
+    await httpClient.delete(`${this.baseUrl}/${id}/`);
+  } catch (error) {
+    console.error(`Error deleting product ${id}:`, error);
+    throw new Error('Failed to delete product');
+  }
+}
 }
 
 export const productService = new ProductService();
