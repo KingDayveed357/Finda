@@ -33,7 +33,7 @@ import VendorListings from "./pages/vendor/VendorListings";
 import VendorOrders from "./pages/vendor/VendorOrders";
 import VendorSettings from "./pages/vendor/VendorSettings";
 import ComingSoon from "./components/ComingSoon";
-import VendorEditListing from "./pages/vendor/VendorEditListing";
+// import VendorEditListing from "./pages/vendor/VendorEditListing";
 import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient({
@@ -235,14 +235,14 @@ const App = () => (
                 } 
               />
 
-              <Route 
+              {/* <Route 
                 path="/vendor/listings/edit/:id" 
                 element={
                   <RouteGuard requireAuth={true} requireVendor={true}>
                     <VendorEditListing/>
                   </RouteGuard>
                 } 
-              />
+              /> */}
 
                <Route 
                 path="/vendor/orders" 

@@ -1221,13 +1221,13 @@ class EnhancedListingService {
     };
   }
 
-  private calculateCacheHitRate(): number {
-    return this.cache.getStats().hitRate;
-  }
+  // private calculateCacheHitRate(): number {
+  //   return this.cache.getStats().hitRate;
+  // }
 
-  private calculateAverageResponseTime(): number {
-    return this.cache.getStats().averageResponseTime;
-  }
+  // private calculateAverageResponseTime(): number {
+  //   return this.cache.getStats().averageResponseTime;
+  // }
 
   // ORIGINAL METHOD: Enhanced with parallel deletion attempts
   async deleteListing(id: string): Promise<boolean> {
@@ -1439,9 +1439,9 @@ class EnhancedListingService {
   /**
    * Convert page-based pagination to offset-based pagination
    */
-  private pageToOffset(page: number, limit: number): number {
-    return (page - 1) * limit;
-  }
+  // private pageToOffset(page: number, limit: number): number {
+  //   return (page - 1) * limit;
+  // }
 
   /**
    * Get listings with backward-compatible pagination
@@ -1572,7 +1572,7 @@ class EnhancedListingService {
    */
   async getListingsNearLocation(
     location: string, 
-    radius: number = 50, 
+    // radius: number = 50, 
     filters: Omit<ListingFilters, 'location'> = {}
   ): Promise<UnifiedListing[]> {
     return this.getAllListings({
