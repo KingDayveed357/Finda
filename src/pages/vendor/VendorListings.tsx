@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Package, Wrench, Star, Eye, TrendingUp, BarChart3, Filter } from "lucide-react";
+import { Plus, Package, Wrench, Star, Eye, TrendingUp, Filter } from "lucide-react";
 import VendorLayout from "@/components/vendor/VendorLayout";
 import ListingTable from "@/components/vendor/ListingTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import {
   listingService, 
   type UnifiedListing, 
   type VendorStats,
-  type ListingFilters 
+  // type ListingFilters 
 } from "@/service/listingService";
 
 const VendorListings = () => {
@@ -215,17 +215,17 @@ const VendorListings = () => {
   };
 
   // Calculate status-based counts from current listings
-  const getActiveCount = () => {
-    return filteredListings.filter(listing => getListingStatus(listing) === 'published').length;
-  };
+  // const getActiveCount = () => {
+  //   return filteredListings.filter(listing => getListingStatus(listing) === 'published').length;
+  // };
 
-  const getPausedCount = () => {
-    return filteredListings.filter(listing => getListingStatus(listing) === 'paused').length;
-  };
+  // const getPausedCount = () => {
+  //   return filteredListings.filter(listing => getListingStatus(listing) === 'paused').length;
+  // };
 
-  const getDraftCount = () => {
-    return filteredListings.filter(listing => getListingStatus(listing) === 'draft').length;
-  };
+  // const getDraftCount = () => {
+  //   return filteredListings.filter(listing => getListingStatus(listing) === 'draft').length;
+  // };
 
   return (
     <VendorLayout>

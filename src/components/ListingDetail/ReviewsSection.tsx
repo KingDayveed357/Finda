@@ -4,7 +4,7 @@ import { Star, MessageCircle, Filter, SortDesc, ThumbsUp, Edit, Trash2 } from 'l
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar,  AvatarFallback } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -436,25 +436,39 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({
             </DropdownMenu>
 
             {/* Sort dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <SortDesc className="h-4 w-4 mr-2" />
-                  Sort
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleSort('date')}>
-                  Most Recent
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSort('rating')}>
-                  Highest Rated
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSort('helpful')}>
-                  Most Helpful
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="outline" size="sm">
+      <SortDesc className="h-4 w-4 mr-2" />
+      Sort
+      {currentSort !== 'date' && (
+        <Badge variant="secondary" className="ml-2">
+          {currentSort === 'rating' ? 'Rating' : 'Helpful'}
+        </Badge>
+      )}
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end">
+    <DropdownMenuItem 
+      onClick={() => handleSort('date')}
+      className={currentSort === 'date' ? 'bg-gray-100' : ''}
+    >
+      Most Recent {currentSort === 'date' && '✓'}
+    </DropdownMenuItem>
+    <DropdownMenuItem 
+      onClick={() => handleSort('rating')}
+      className={currentSort === 'rating' ? 'bg-gray-100' : ''}
+    >
+      Highest Rated {currentSort === 'rating' && '✓'}
+    </DropdownMenuItem>
+    <DropdownMenuItem 
+      onClick={() => handleSort('helpful')}
+      className={currentSort === 'helpful' ? 'bg-gray-100' : ''}
+    >
+      Most Helpful {currentSort === 'helpful' && '✓'}
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
 
             {/* Add Review Button */}
             {isAuthenticated && (

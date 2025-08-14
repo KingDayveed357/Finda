@@ -71,7 +71,7 @@ export const useAuth = () => {
       if (response.user.user_type === 'vendor') {
         navigate('/vendor/dashboard');
       } else {
-        navigate('/dashboard'); // or wherever customers should go
+        navigate('/chat'); // or wherever customers should go
       }
 
       console.log('Login successful:', response);
@@ -137,7 +137,7 @@ export const useAuth = () => {
       });
 
       // Redirect to customer dashboard
-      navigate('/dashboard');
+      navigate('/chat');
 
       console.log('Customer registration successful:', response);
     } catch (error) {

@@ -4,15 +4,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+// import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 // Import pages
 import Landing from "./pages/Landing";
-import ListingGrid from "./pages/ListingGrid";
+import ListingGrid from "./pages/ListingGrid2";
 import ListingDetail from "./pages/ListingDetail";
 import Login from "./pages/Login"
 import Register from "./pages/Register"
-import CustomerDashboard from "./pages/CustomerDashboard";
+// import CustomerDashboard from "./pages/CustomerDashboard";
 import VendorDashboard from "./pages/vendor/VendorDashboard";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
@@ -142,7 +142,7 @@ const App = () => (
               <Route 
                 path="/auth/login" 
                 element={
-                  <RouteGuard requireAuth={false} redirectAuthenticatedTo="/dashboard">
+                  <RouteGuard requireAuth={false} redirectAuthenticatedTo="/chat">
                     <Login />
                   </RouteGuard>
                 } 
@@ -151,7 +151,7 @@ const App = () => (
               <Route 
                 path="/auth/signup" 
                 element={
-                  <RouteGuard requireAuth={false} redirectAuthenticatedTo="/dashboard">
+                  <RouteGuard requireAuth={false} redirectAuthenticatedTo="/chat">
                     <Register />
                   </RouteGuard>
                 } 
@@ -198,19 +198,19 @@ const App = () => (
 
               {/* Customer-specific routes - require customer authentication */}
               <Route 
-                path="/customer-dashboard" 
+                path="/chat" 
                 element={
                   <RouteGuard requireAuth={true} requireCustomer={true}>
-                    <CustomerDashboard />
+                    <Chat />
                   </RouteGuard>
                 } 
               />
               
               <Route 
-                path="/dashboard" 
+                path="/chat" 
                 element={
                   <RouteGuard requireAuth={true} requireCustomer={true}>
-                    <CustomerDashboard />
+                    <Chat />
                   </RouteGuard>
                 } 
               />

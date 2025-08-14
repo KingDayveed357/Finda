@@ -38,7 +38,7 @@ const getSellerBadgeStyles = (type: string) => {
 };
 
 export const ProductCard = ({
-  id,
+  // id,
   title,
   price,
   originalPrice,

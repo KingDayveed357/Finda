@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Send, Mic, Image, Paperclip, Zap } from "lucide-react";
+import { Send, Mic, Image,  Zap, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -92,6 +92,14 @@ export const ChatInterface = ({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+             <Button
+              // onClick={handleSend}
+              // disabled={!inputValue.trim() || isLoading}
+              className="h-12 w-28 border-2 bg-transparent text-black hover:bg-accent rounded-lg p-0"
+            >
+             <Plus />
+             New Chat
+            </Button>
           {messages.length === 0 ? (
             <div className="text-center py-12">
               <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-primary to-primary-glow flex items-center justify-center">

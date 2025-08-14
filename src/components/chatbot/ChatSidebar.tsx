@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Heart, MessageSquare, Clock, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+// import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+// import { cn } from "@/lib/utils";
 
 interface ChatHistory {
   id: string;

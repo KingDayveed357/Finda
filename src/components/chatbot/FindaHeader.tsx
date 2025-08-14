@@ -1,6 +1,7 @@
-import { Search, Mic, Image, Menu, Bell, User, Sparkles } from "lucide-react";
+import { Menu, Bell, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
+// import { Badge } from "@/components/ui/badge";
 
 export const FindaHeader = () => {
   return (
@@ -18,9 +19,15 @@ export const FindaHeader = () => {
 
         {/* Quick Actions */}
         <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="icon" className="h-10 w-24 border-2 bg-transparent text-black hover:bg-accent rounded-lg p-0">
+              <Link to={'/'}>
+            Home
+            </Link>
+          </Button>
           <Button variant="ghost" size="icon" className="hidden md:flex">
             <Bell className="h-4 w-4" />
           </Button>
+          
           <Button variant="ghost" size="icon">
             <User className="h-4 w-4" />
           </Button>

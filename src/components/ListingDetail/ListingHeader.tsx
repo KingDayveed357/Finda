@@ -46,7 +46,7 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({
       </div>
 
       <div className="text-2xl font-bold text-blue-600 mb-4">
-        {formatPrice(listing.price)}
+        {formatPrice(listing.price ?? 0)}
       </div>
 
       <div className="flex flex-wrap gap-2">

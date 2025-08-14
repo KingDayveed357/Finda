@@ -22,7 +22,6 @@ export const StarRating: React.FC<StarRatingProps> = ({
   showValue = false
 }) => {
   const [hoveredRating, setHoveredRating] = useState<number>(0);
-  const [hoverPosition, setHoverPosition] = useState<'left' | 'right'>('right');
 
   const sizeClasses = {
     sm: 'h-4 w-4',
@@ -45,7 +44,6 @@ export const StarRating: React.FC<StarRatingProps> = ({
     
     const newRating = isHalf ? starIndex - 0.5 : starIndex;
     setHoveredRating(newRating);
-    setHoverPosition(isHalf ? 'left' : 'right');
   };
 
   const handleMouseLeave = () => {

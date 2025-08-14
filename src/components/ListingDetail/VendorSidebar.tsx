@@ -30,7 +30,7 @@ export const VendorSidebar: React.FC<VendorSidebarProps> = ({
   contactInfo,
   isAuthenticated,
   isCurrentUserVendor,
-  onContactVendor
+  // onContactVendor
 }) => {
   const navigate = useNavigate();
     const handleRedirectToVendorProfile = () => {

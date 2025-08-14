@@ -17,7 +17,9 @@ import { ErrorDisplay } from '@/components/ListingDetail/ErrorDisplay';
 import { RelatedItems } from '@/components/ListingDetail/RelatedItems';
 import { AddReviewModal } from '@/components/ListingDetail/AddReviewModal';
 import { useReviews } from '@/hooks/useReviews';
-import { ErrorType, type ErrorState, type UnifiedListing,  type Product, type Service } from '@/types/listing';
+import { ErrorType, type ErrorState, type Product, type Service } from '@/types/listing';
+// Import UnifiedListing from listingService instead of types to ensure compatibility
+import type { UnifiedListing } from '@/service/listingService';
 import type { ProductRating, ServiceRating } from '@/service/reviewsService';
 
 // Helper functions

@@ -1,33 +1,26 @@
-import { useState , useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Menu, Sparkles } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  // DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-// import { Badge } from '@/components/ui/badge';
 import MobileSearchModal from './MobileSearchModal';
+import SearchComponent from '@/components/search/Search';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { useAuth } from '@/hooks/useAuth';
 import AuthStatus from '@/components/auth/AuthStatus';
-import { categoryService} from '@/service/categoryService';
+import { categoryService } from '@/service/categoryService';
 import type { Category } from '@/service/categoryService';
 
 const NavBar = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  // const [unreadMessages] = useState(3);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const { addToHistory } = useSearchHistory();
   const { isAuthenticated } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -48,15 +41,6 @@ const NavBar = () => {
     fetchCategories();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      addToHistory(searchQuery.trim());
-      navigate(`/listings?search=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
-    }
-  };
-
   return (
     <>
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -74,23 +58,10 @@ const NavBar = () => {
             {/* AI-Enhanced Search Bar - Desktop Only */}
             {!isMobile && (
               <div className="flex-1 max-w-2xl mx-8">
-                <form onSubmit={handleSearch} className="relative">
-                  <Input
-                    type="text"
-                    placeholder="Search with AI assistance..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-4 pr-20 py-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
-                  >
-                    <Search className="h-4 w-4" />
-                    <Sparkles className="h-3 w-3" />
-                  </Button>
-                </form>
+                <SearchComponent
+                  placeholder="Search with AI assistance..."
+                  className="w-full"
+                />
               </div>
             )}
 
@@ -121,25 +92,23 @@ const NavBar = () => {
                   {categories.length > 0 ? (
                     categories.map((category) => (
                       <DropdownMenuItem key={category.id} asChild>
-                        <Link  to={`/listings?category=${category.id}`} className="flex items-center">
+                        <Link to={`/listings?category=${category.id}`} className="flex items-center">
                           <span className="mr-1 text-lg">{category.icon || '📁'}</span>
-                          {/* <img src={category.image_url} className='h-5 w-5 rounded-full' alt="image" /> */}
                           <span>{category.name}</span>
                           <span className="ml-auto text-xs text-gray-500">
-                         {(category.products_count !== undefined || category.services_count !== undefined) && (
-  (() => {
-    const productCount = category.products_count ?? 0;
-    const serviceCount = category.services_count ?? 0;
+                            {(category.products_count !== undefined || category.services_count !== undefined) && (
+                              (() => {
+                                const productCount = category.products_count ?? 0;
+                                const serviceCount = category.services_count ?? 0;
 
-    if (category.category_type === 'both') {
-      return `(${productCount + serviceCount})`;
-    }
+                                if (category.category_type === 'both') {
+                                  return `(${productCount + serviceCount})`;
+                                }
 
-    return `(${productCount || serviceCount})`; // show whichever is relevant
-  })()
-)}
-
-                        </span>
+                                return `(${productCount || serviceCount})`; // show whichever is relevant
+                              })()
+                            )}
+                          </span>
                         </Link>
                       </DropdownMenuItem>
                     ))

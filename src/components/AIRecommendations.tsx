@@ -6,7 +6,7 @@ import { Sparkles, TrendingUp, Star, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { mockAI, mockListings } from '@/lib/mock-ai';
 import type { Listing } from "@/lib/mock-ai";
-import ListingCard from './ListingCard';
+import ListingCard from './ListingCard2';
 
 interface AIRecommendationsProps {
   searchHistory?: string[];
