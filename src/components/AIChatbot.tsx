@@ -497,16 +497,16 @@
 
 
 import { MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const AIChatbot = () => {
-  const handleClick = () => {
-    window.location.href = '/chat';
-  };
+  const navigate = useNavigate();
+
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
       <button
-        onClick={handleClick}
+        onClick={() => navigate('/chat')}
         className="group relative bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50"
         aria-label="Open AI Chatbot"
       >
