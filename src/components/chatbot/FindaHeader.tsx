@@ -1,4 +1,4 @@
-import { Sparkles, Menu, Bell, User, Home } from "lucide-react";
+import { Sparkles, Menu, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
