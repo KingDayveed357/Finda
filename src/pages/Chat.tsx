@@ -1,15 +1,12 @@
-
-import { useState } from "react";
-import { Filter, Grid, List, Clock, TrendingUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Filter } from "lucide-react";
 import { FindaHeader } from "@/components/chatbot/FindaHeader";
 import { ChatInterface } from "@/components/chatbot/ChatInterface";
-import { ProductCard } from "@/components/chatbot/ProductCard";
+import { SearchResultsGrid } from "@/components/chatbot/SearchResultsGrid";
 import { FilterSidebar } from "@/components/chatbot/FilterSidebar";
 import { ProductModal } from "@/components/chatbot/ProductModal";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-// import { Separator } from "@/components/ui/separator";
-import { toast } from 'sonner'
+import { toast } from "sonner";
+import { chatbotService, type ChatResponse, type SearchResults } from "@/service/chatbotService";
 
 interface Message {
   id: string;
@@ -17,6 +14,8 @@ interface Message {
   content: string;
   timestamp: Date;
   facepile?: { label: string; action: string }[];
+  searchResults?: SearchResults;
+  suggestedActions?: Array<{ action: string; label: string; description: string }>;
 }
 
 interface Product {
@@ -53,13 +52,17 @@ interface Product {
 }
 
 const Index = () => {
-//   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [sessionId] = useState(() => chatbotService.generateSessionId());
+  const [searchPerformance, setSearchPerformance] = useState({
+    time: "0s",
+    sources: [] as string[]
+  });
   const [filters, setFilters] = useState({
     priceRange: [0, 1000] as [number, number],
     vendors: [] as string[],
@@ -69,142 +72,117 @@ const Index = () => {
     brands: [] as string[]
   });
 
-  const mockProducts: Product[] = [
-    {
-      id: '1',
-      title: 'iPhone 12 Pro Max 128GB Pacific Blue - Unlocked',
-      price: '$349.99',
-      originalPrice: '$399.99',
-      seller: {
-        name: 'Amazon',
-        type: 'amazon',
-        rating: 4.8,
-        reviewCount: 2543,
-        responseTime: 'Within 1 hour',
-        verificationLevel: 'Verified Seller'
-      },
-      images: [
-        'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400',
-        'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400'
-      ],
-      rating: 4.7,
-      reviewCount: 1834,
-      deliveryTime: 'Next day',
-      location: 'Lagos, Nigeria',
-      description: 'Fully unlocked iPhone 12 Pro Max in excellent condition. Includes original box and accessories. Battery health at 89%. No scratches or dents.',
-      specifications: {
-        'Screen Size': '6.7 inches',
-        'Storage': '128GB',
-        'Color': 'Pacific Blue',
-        'Condition': 'Used - Excellent',
-        'Battery Health': '89%',
-        'Carrier': 'Unlocked'
-      },
-      reviews: [
-        {
-          id: '1',
-          author: 'Sarah M.',
-          rating: 5,
-          comment: 'Perfect condition as described. Fast delivery to Lagos.',
-          date: '2 days ago',
-          verified: true
-        },
-        {
-          id: '2',
-          author: 'Ahmed K.',
-          rating: 4,
-          comment: 'Good phone, minor battery wear but works great.',
-          date: '1 week ago',
-          verified: true
-        }
-      ],
-      explanation: 'This iPhone 12 Pro matches your budget and location requirements. Amazon Prime delivery available to Lagos with excellent seller ratings.',
-      tags: ['Prime Eligible', 'Fast Shipping', 'Excellent Condition'],
-      discount: '12% OFF'
-    },
-    {
-      id: '2',
-      title: 'iPhone 12 Pro 256GB Gold - Refurbished',
-      price: '$329.00',
-      seller: {
-        name: 'TechHub NG',
-        type: 'finda',
-        rating: 4.6,
-        reviewCount: 892,
-        responseTime: '2-4 hours',
-        verificationLevel: 'Finda Verified'
-      },
-      images: [
-        'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400'
-      ],
-      rating: 4.5,
-      reviewCount: 267,
-      deliveryTime: '2-3 days',
-      location: 'Abuja, Nigeria',
-      description: 'Professionally refurbished iPhone 12 Pro with 6-month warranty. All functions tested and verified.',
-      specifications: {
-        'Screen Size': '6.1 inches',
-        'Storage': '256GB',
-        'Color': 'Gold',
-        'Condition': 'Refurbished',
-        'Warranty': '6 months',
-        'Carrier': 'Unlocked'
-      },
-      reviews: [
-        {
-          id: '3',
-          author: 'Michael O.',
-          rating: 5,
-          comment: 'Great local seller, phone arrived quickly.',
-          date: '3 days ago',
-          verified: true
-        }
-      ],
-      explanation: 'Local Finda vendor offering competitive pricing with warranty. Supports local Nigerian business and faster local delivery.',
-      tags: ['Local Seller', 'Warranty Included', 'Verified Refurbished']
-    },
-    {
-      id: '3',
-      title: 'iPhone 12 Pro 128GB Graphite - Grade A',
-      price: '$345.50',
-      seller: {
-        name: 'Jumia',
-        type: 'jumia',
-        rating: 4.4,
-        reviewCount: 1205,
-        responseTime: 'Within 6 hours',
-        verificationLevel: 'Official Store'
-      },
-      images: [
-        'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=400'
-      ],
-      rating: 4.3,
-      reviewCount: 445,
-      deliveryTime: 'Same day',
-      location: 'Lagos, Nigeria',
-      description: 'Grade A refurbished iPhone 12 Pro with minimal signs of use. Jumia official warranty included.',
-      specifications: {
-        'Screen Size': '6.1 inches',
-        'Storage': '128GB',
-        'Color': 'Graphite',
-        'Condition': 'Grade A',
-        'Warranty': '12 months',
-        'Carrier': 'Unlocked'
-      },
-      reviews: [
-        {
-          id: '4',
-          author: 'Fatima A.',
-          rating: 4,
-          comment: 'Good quality, Jumia delivery was reliable.',
-          date: '5 days ago',
-          verified: true
-        }
-      ],
-      explanation: 'Jumia offers same-day delivery in Lagos with official warranty. Trusted local marketplace with buyer protection.',
-      tags: ['Same Day Delivery', 'Official Warranty', 'Buyer Protection']
+  // Initialize chatbot service
+  useEffect(() => {
+    const initializeChatbot = async () => {
+      try {
+        await chatbotService.initialize();
+        console.log('Chatbot service initialized with session:', sessionId);
+      } catch (error) {
+        console.error('Failed to initialize chatbot service:', error);
+        toast.error('Failed to initialize chat service. Please refresh the page.');
+      }
+    };
+
+    initializeChatbot();
+  }, [sessionId]);
+
+  // Function to convert API search results to Product format
+  const convertSearchResultsToProducts = (searchResults: SearchResults): Product[] => {
+    const products: Product[] = [];
+
+    // Process local products
+    if (searchResults.local?.products) {
+      searchResults.local.products.forEach((localProduct, index) => {
+        const product: Product = {
+          id: `local-${localProduct.id || index}`,
+          title: localProduct.name,
+          price: localProduct.formatted_price || `${localProduct.price}`,
+          seller: {
+            name: 'Finda',
+            type: 'finda',
+            rating: 4.5, // Default rating for local products
+            reviewCount: Math.floor(Math.random() * 500) + 50,
+            responseTime: '1-2 hours',
+            verificationLevel: 'Finda Verified'
+          },
+          images: ['/placeholder-product.jpg'], // Use placeholder until we have real images
+          rating: 4.0 + Math.random(), // Random rating between 4-5
+          reviewCount: Math.floor(Math.random() * 200) + 20,
+          deliveryTime: 'Same day', // Default for local
+          location: 'Lagos, Nigeria', // Default location
+          description: `High-quality ${localProduct.name} available on Finda marketplace`,
+          specifications: {
+            'Condition': 'New',
+            'Warranty': '1 Year',
+            'Source': 'Local Finda Vendor'
+          },
+          reviews: [
+            {
+              id: '1',
+              author: 'Verified Buyer',
+              rating: 5,
+              comment: 'Great product from local vendor',
+              date: '2 days ago',
+              verified: true
+            }
+          ],
+          explanation: 'Local Finda marketplace product with competitive pricing and fast delivery',
+          tags: ['Local Vendor', 'Fast Delivery', 'Verified'],
+          discount: Math.random() > 0.7 ? `${Math.floor(Math.random() * 20) + 5}% OFF` : undefined
+        };
+        products.push(product);
+      });
     }
-  ];
+
+    // Process external products
+    if (searchResults.external?.products) {
+      searchResults.external.products.forEach((externalProduct, index) => {
+        const sellerType = externalProduct.source.toLowerCase() as 'amazon' | 'jumia' | 'ebay' | 'finda' | 'upwork';
+        
+        const product: Product = {
+          id: `external-${index}`,
+          title: externalProduct.title,
+          price: externalProduct.price,
+          seller: {
+            name: externalProduct.source,
+            type: ['amazon', 'jumia', 'ebay', 'finda', 'upwork'].includes(sellerType) ? sellerType : 'amazon',
+            rating: 4.0 + Math.random(),
+            reviewCount: Math.floor(Math.random() * 1000) + 100,
+            responseTime: sellerType === 'amazon' ? 'Within 1 hour' : '2-4 hours',
+            verificationLevel: 'Verified Seller'
+          },
+          images: ['/placeholder-product.jpg'], // Use placeholder until we have real images
+          rating: 4.0 + Math.random(),
+          reviewCount: Math.floor(Math.random() * 500) + 50,
+          deliveryTime: sellerType === 'amazon' ? 'Next day' : '2-3 days',
+          location: sellerType === 'jumia' ? 'Lagos, Nigeria' : 'International',
+          description: `${externalProduct.title} from ${externalProduct.source}`,
+          specifications: {
+            'Source': externalProduct.source,
+            'Availability': 'In Stock',
+            'Shipping': 'Available to Nigeria'
+          },
+          reviews: [
+            {
+              id: '1',
+              author: 'Customer',
+              rating: Math.floor(4 + Math.random()),
+              comment: `Good quality product from ${externalProduct.source}`,
+              date: '1 week ago',
+              verified: true
+            }
+          ],
+          explanation: `Product found on ${externalProduct.source} marketplace`,
+          tags: ['External Vendor', externalProduct.source, 'International'],
+          discount: Math.random() > 0.6 ? `${Math.floor(Math.random() * 25) + 5}% OFF` : undefined
+        };
+        products.push(product);
+      });
+    }
+
+    return products;
+  };
 
   const handleSendMessage = async (message: string) => {
     const userMessage: Message = {
@@ -217,45 +195,186 @@ const Index = () => {
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Simulate AI processing
-    setTimeout(() => {
+    try {
+      // Send message to chatbot API
+      const startTime = performance.now();
+      
+      const response: ChatResponse = await chatbotService.sendTextMessage(message, {
+        session_id: sessionId,
+        language: 'en',
+        enable_tts: false,
+        user_location: {
+          country: 'Nigeria',
+          city: 'Lagos',
+          coordinates: { lat: 6.5244, lng: 3.3792 }
+        }
+      });
+
+      const endTime = performance.now();
+      const processingTime = ((endTime - startTime) / 1000).toFixed(1);
+
+      // Create AI response message
       const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
+        id: response.message_id,
         type: 'assistant',
-        content: `I found ${mockProducts.length} iPhone 12 Pro options under $350 with delivery to Lagos. Here are the best matches based on your criteria:\n\n• Amazon has an excellent condition iPhone 12 Pro Max for $349.99 with next-day delivery\n• Local Finda vendor offers a refurbished iPhone 12 Pro for $329 with warranty\n• Jumia provides same-day delivery options starting at $345.50\n\nAll options are verified sellers with good ratings. Would you like me to refine these by delivery time, condition, or specific features?`,
-        timestamp: new Date(),
-        facepile: [
-          { label: 'Refine by Price', action: 'price' },
-          { label: 'Seller Type', action: 'seller' },
-          { label: 'Delivery Time', action: 'delivery' },
-          { label: 'Show Cheapest', action: 'cheapest' }
-        ]
+        content: response.response,
+        timestamp: new Date(response.timestamp),
+        searchResults: response.search_results,
+        suggestedActions: response.suggested_actions,
+        facepile: response.suggested_actions?.map(action => ({
+          label: action.label,
+          action: action.action
+        }))
       };
 
       setMessages(prev => [...prev, aiResponse]);
-      setSearchResults(mockProducts);
+
+      // Update search results if available
+      if (response.search_results) {
+        const products = convertSearchResultsToProducts(response.search_results);
+        setSearchResults(products);
+
+        // Update search performance
+        setSearchPerformance({
+          time: `${processingTime}s`,
+          sources: response.metadata.services_used || []
+        });
+
+        // Show success toast with performance info
+        const totalResults = (response.search_results.local?.total || 0) + (response.search_results.external?.total || 0);
+        toast.success(
+          `Search completed - Found ${totalResults} results in ${processingTime}s across ${response.metadata.services_used?.join(', ') || 'multiple sources'}`
+        );
+      }
+
+    } catch (error) {
+      console.error('Error sending message to chatbot:', error);
+      
+      // Create error response
+      const errorResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: 'I apologize, but I encountered an error while processing your request. Please try again or rephrase your question.',
+        timestamp: new Date(),
+        facepile: [
+          { label: 'Try Again', action: 'retry' },
+          { label: 'Help', action: 'help' }
+        ]
+      };
+
+      setMessages(prev => [...prev, errorResponse]);
+      toast.error('Failed to get response from chatbot. Please try again.');
+    } finally {
       setIsLoading(false);
-
-      // Show performance indicator
-       toast.success('Found results in 0.9s across Amazon, Jumia, and Finda marketplace')
-    }, 2000);
+    }
   };
 
-  const handleVoiceMessage = () => {
-   toast.success("Voice recording feature coming soon!");
+  const handleVoiceMessage = async () => {
+    toast.info("Voice recording feature - Upload a voice file to transcribe!");
+    
+    // Create file input for voice upload
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'audio/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          setIsLoading(true);
+          toast.info("Transcribing voice message...");
+          
+          const transcriptionResponse = await chatbotService.uploadVoice(file);
+          
+          if (transcriptionResponse.success && transcriptionResponse.transcription.text) {
+            // Send the transcribed text as a message
+            await handleSendMessage(transcriptionResponse.transcription.text);
+            toast.success(`Voice transcribed: "${transcriptionResponse.transcription.text.substring(0, 50)}..."`);
+          }
+        } catch (error) {
+          console.error('Voice transcription failed:', error);
+          toast.error('Failed to transcribe voice message. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    input.click();
   };
 
-  const handleImageUpload = () => {
-    toast.success('Upload an image to find similar products!')
+  const handleImageUpload = async () => {
+    toast.info("Upload an image to find similar products!");
+    
+    // Create file input for image upload
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          setIsLoading(true);
+          toast.info("Analyzing image...");
+          
+          const imageAnalysisResponse = await chatbotService.uploadImage(
+            file, 
+            "Can you find similar products to this image?"
+          );
+          
+          if (imageAnalysisResponse.success) {
+            // Create a message about the image upload
+            const imageMessage: Message = {
+              id: Date.now().toString(),
+              type: 'user',
+              content: "🖼️ Image uploaded - Looking for similar products...",
+              timestamp: new Date()
+            };
+            
+            setMessages(prev => [...prev, imageMessage]);
+            
+            // Send a follow-up message to get product recommendations
+            await handleSendMessage("Find products similar to the uploaded image");
+            toast.success("Image analyzed successfully!");
+          }
+        } catch (error) {
+          console.error('Image analysis failed:', error);
+          toast.error('Failed to analyze image. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    input.click();
   };
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
   };
 
+  const handleToggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleFacepileAction = async (action: string) => {
+    // Handle suggested action clicks
+    const actionMessages: { [key: string]: string } = {
+      'price': 'Show me options sorted by price',
+      'seller': 'Filter by seller type',
+      'delivery': 'Show fastest delivery options',
+      'cheapest': 'Show me the cheapest options',
+      'compare_products': 'Help me compare these products',
+      'retry': 'Please try that search again',
+      'help': 'What can you help me find?'
+    };
+
+    const message = actionMessages[action] || `Tell me more about ${action}`;
+    await handleSendMessage(message);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <FindaHeader />
+      <FindaHeader 
+        onToggleSidebar={handleToggleSidebar}
+      />
       
       <div className="flex-1 flex overflow-hidden">
         {/* Main Content */}
@@ -267,97 +386,23 @@ const Index = () => {
               onSendMessage={handleSendMessage}
               onVoiceMessage={handleVoiceMessage}
               onImageUpload={handleImageUpload}
+              onToggleSidebar={handleToggleSidebar}
+              onFacepileAction={handleFacepileAction}
+              sidebarOpen={sidebarOpen}
               isLoading={isLoading}
+              sessionId={sessionId}
             />
           </div>
 
           {/* Results Panel - Hidden on mobile when no results */}
           <div className={`lg:w-1/2 flex flex-col ${searchResults.length === 0 ? 'hidden lg:flex' : 'flex'}`}>
             {searchResults.length > 0 ? (
-              <>
-                {/* Results Header */}
-                <div className="p-4 border-b bg-muted/30">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-semibold">Search Results</h3>
-                      <Badge variant="secondary">{searchResults.length} found</Badge>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={viewMode === 'grid' ? 'bg-muted' : ''}
-                        onClick={() => setViewMode('grid')}
-                      >
-                        <Grid className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={viewMode === 'list' ? 'bg-muted' : ''}
-                        onClick={() => setViewMode('list')}
-                      >
-                        <List className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowFilters(true)}
-                      >
-                        <Filter className="h-4 w-4 mr-1" />
-                        Filters
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="h-3 w-3" />
-                      <span>Search was fast (0.9s)</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <TrendingUp className="h-3 w-3" />
-                      <span>Best matches first</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Products Grid */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  <div className={`grid gap-4 ${
-                    viewMode === 'grid' 
-                      ? 'grid-cols-1 sm:grid-cols-2' 
-                      : 'grid-cols-1'
-                  }`}>
-                    {searchResults.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        id={product.id}
-                        title={product.title}
-                        price={product.price}
-                        originalPrice={product.originalPrice}
-                        seller={product.seller}
-                        image={product.images[0]}
-                        rating={product.rating}
-                        reviewCount={product.reviewCount}
-                        deliveryTime={product.deliveryTime}
-                        location={product.location}
-                        explanation={product.explanation}
-                        tags={product.tags}
-                        discount={product.discount}
-                        onClick={() => handleProductClick(product)}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Load More Button */}
-                  <div className="text-center mt-6">
-                    <Button variant="outline">
-                      View More Results →
-                    </Button>
-                  </div>
-                </div>
-              </>
+              <SearchResultsGrid 
+                products={searchResults}
+                onProductClick={handleProductClick}
+                onShowFilters={() => setShowFilters(true)}
+                searchPerformance={searchPerformance}
+              />
             ) : (
               <div className="flex-1 flex items-center justify-center p-8">
                 <div className="text-center max-w-md">

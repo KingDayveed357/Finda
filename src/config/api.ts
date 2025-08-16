@@ -11,7 +11,7 @@ export const API_CONFIG = {
   
   // API Endpoints organized by feature
   ENDPOINTS: {
-    CHATBOT: '/chatbot/api/',
+    
     PRODUCTS: '/api/main/products/',
     SERVICES: '/api/main/services/',
     CATEGORIES: '/api/main/categories/',
@@ -31,6 +31,17 @@ export const API_CONFIG = {
       CHANGE_PASSWORD: '/api/auth/change-password/',
       LOGOUT: '/api/auth/logout/',
     },
+    CHATBOT: {
+      MAIN: '/chatbot/api/chat/',
+      SEARCH: '/chatbot/api/search/',
+      SUGGESTIONS: '/chatbot/api/suggestions/',
+      FILE_UPLOADS: '/chatbot/api/upload/image/',
+      VOICE_NOTE: '/chatbot/api/upload/voice/',
+      CONVERSATIONS: '/chatbot/api/conversation/{session_id}/',
+      FEEDBACK: '/chatbot/api/feedback/',
+      STATUS: '/chatbot/api/status/',
+      HEALTH: '/chatbot/api/health/'
+    }
   },
   
   // Request timeout in milliseconds

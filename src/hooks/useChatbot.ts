@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { authService } from '@/service/authService'; // Import authService
 import { authEvents } from '@/hooks/useAuth';
-import { chatbotService } from '@/service/chatbotService';
+import { chatbotService } from '@/service/oldchatbotService';
 import type { Message } from '../types';
 
 export const useChatbot = () => {

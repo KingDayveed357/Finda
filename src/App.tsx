@@ -35,6 +35,8 @@ import VendorSettings from "./pages/vendor/VendorSettings";
 import ComingSoon from "./components/ComingSoon";
 // import VendorEditListing from "./pages/vendor/VendorEditListing";
 import Chat from "./pages/Chat";
+import Profile from "./pages/customer/Profile";
+import Settings from "./pages/customer/Settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -207,13 +209,23 @@ const App = () => (
               />
               
               <Route 
-                path="/chat" 
+                path="/customer/profile" 
                 element={
                   <RouteGuard requireAuth={true} requireCustomer={true}>
-                    <Chat />
+                    <Profile />
                   </RouteGuard>
                 } 
               />
+
+               <Route 
+                path="/customer/settings" 
+                element={
+                  <RouteGuard requireAuth={true} requireCustomer={true}>
+                    <Settings />
+                  </RouteGuard>
+                } 
+              />
+              
 
               {/* Vendor-specific routes - require vendor authentication */}
 

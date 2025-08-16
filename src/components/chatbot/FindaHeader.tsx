@@ -1,14 +1,23 @@
-import { Menu, Bell, User, Sparkles } from "lucide-react";
+import { Sparkles, Menu, Bell, User, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// import { Link } from "react-router-dom";
 // import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from '@/hooks/useAuth';
+import AuthStatus from '@/components/auth/AuthStatus';
+import { Link } from 'react-router-dom';
 
-export const FindaHeader = () => {
+interface FindaHeaderProps {
+  onToggleSidebar?: () => void;
+}
+
+export const FindaHeader = ({ onToggleSidebar }: FindaHeaderProps) => {
+  const navigate = useNavigate();
+   const { isAuthenticated } = useAuth();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-2">
           <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
             <span className="text-lg font-bold text-primary-foreground">F</span>
           </div>
@@ -19,19 +28,39 @@ export const FindaHeader = () => {
 
         {/* Quick Actions */}
         <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon" className="h-10 w-24 border-2 cursor-pointer bg-transparent text-black hover:bg-accent rounded-lg p-0" onClick={() => window.location.href = '/'}>
-              {/* <Link to={'/'}> */}
-            Home
-            {/* </Link> */}
-          </Button>
-          <Button variant="ghost" size="icon" className="hidden md:flex">
+         
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+              <Home className="h-4 w-4" />
+            </Button>
+        
+          {/* <Button variant="ghost" size="icon" className="hidden md:flex">
             <Bell className="h-4 w-4" />
-          </Button>
-          
-          <Button variant="ghost" size="icon">
+          </Button> */}
+          {/* <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate('/profile')}
+          >
             <User className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="md:hidden">
+          </Button> */}
+                {isAuthenticated() ? (
+                <AuthStatus />
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" asChild className="hidden sm:flex">
+                    <Link to="/auth/login">Sign In</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link to="/auth/signup">Sign Up</Link>
+                  </Button>
+                </div>
+              )}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="lg:hidden"
+            onClick={onToggleSidebar}
+          >
             <Menu className="h-4 w-4" />
           </Button>
         </div>

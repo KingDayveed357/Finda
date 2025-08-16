@@ -7,7 +7,7 @@
 
 // Export primary services
 export { authService } from './authService';
-export { chatbotService } from './chatbotService';
+// export { chatbotService } from './oldchatbotService';
 
 // Export new listing services
 export { productService } from './productService';
@@ -41,7 +41,7 @@ export {
  * Then: services.auth.login(credentials) or services.listings.getAllListings()
  */
 import { authService } from './authService';
-import { chatbotService } from './chatbotService';
+// import { chatbotService } from './oldchatbotService';
 import { productService } from './productService';
 import { serviceService } from './servicesService';
 import { listingService } from './listingService';
@@ -49,7 +49,7 @@ import { isHttpClientReady, getClientInfo } from '../utils/axios-client';
 
 export const services = {
   auth: authService,
-  chatbot: chatbotService,
+  // chatbot: chatbotService,
   products: productService,
   services: serviceService,
   listings: listingService,
@@ -147,13 +147,13 @@ export const performHealthCheck = async (): Promise<{
     // }
     
     // Test chatbot service
-    try {
-      const isChatbotAvailable = typeof chatbotService !== 'undefined' && chatbotService !== null;
-      results.chatbot = isChatbotAvailable;
-    } catch (error) {
-      console.warn('Chatbot service health check failed:', error);
-      results.chatbot = false;
-    }
+    // try {
+    //   const isChatbotAvailable = typeof chatbotService !== 'undefined' && chatbotService !== null;
+    //   results.chatbot = isChatbotAvailable;
+    // } catch (error) {
+    //   console.warn('Chatbot service health check failed:', error);
+    //   results.chatbot = false;
+    // }
     
     // Test listing services
     try {
@@ -213,9 +213,9 @@ export const getServiceStatus = () => {
       auth: {
         isAuthenticated: authService.isAuthenticated(),
       },
-      chatbot: {
-        available: typeof chatbotService !== 'undefined' && chatbotService !== null,
-      },
+      // chatbot: {
+      //   available: typeof chatbotService !== 'undefined' && chatbotService !== null,
+      // },
       listings: {
         available: typeof listingService !== 'undefined' && listingService !== null,
       },

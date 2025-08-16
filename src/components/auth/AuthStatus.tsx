@@ -66,6 +66,15 @@ const AuthStatus = () => {
     return user.user_type === 'vendor' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
   };
 
+  // Dynamic route helpers
+  const getProfileRoute = () => {
+    return user.user_type === 'vendor' ? '/vendor/profile' : '/customer/profile';
+  };
+
+  const getSettingsRoute = () => {
+    return user.user_type === 'vendor' ? '/vendor/settings' : '/customer/settings';
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -95,15 +104,14 @@ const AuthStatus = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem >
-          <Link to="/vendor/profile" className="flex items-center">
+          <Link to={getProfileRoute()} className="flex items-center">
              <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
           </Link>
         </DropdownMenuItem>
 
-
         <DropdownMenuItem>
-         <Link to="/vendor/settings" className="flex items-center">
+         <Link to={getSettingsRoute()} className="flex items-center">
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
          </Link>
